@@ -236,6 +236,12 @@ old one.
    and still be worth it on a long one.
 7. **Same prompt, three times, before believing a skill triggers.** Loading is
    probabilistic: symptom wordings hit, the literal error name sometimes does not.
+8. **Moving a skill directory aside may change nothing.** The OpenCode server keeps
+   the skill registry in memory: after `Move-Item skills skills.off` a new
+   `opencode run` still resolved skills from the old path (verified 2026-11-18).
+   Check `state.metadata.directory` of the `skill` call, or run the control in a
+   copy of the project outside its own directory, where the server sees it first
+   time.
 
 ## 8. Caveats
 
