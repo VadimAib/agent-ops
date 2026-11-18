@@ -1,0 +1,96 @@
+name: check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: sync.sh is executable
+        run: test "$(stat -c %a sync.sh)" = "755"
+
+      - name: check on a missing target exits 1
+        run: |
+          set +e
+          ./sync.sh --check --target "$RUNNER_TEMP/t" >/dev/null
+          code=$?
+          set -e
+          test "$code" = "1"
+
+      - name: install, then check exits 0
+        run: |
+          ./sync.sh --target "$RUNNER_TEMP/t"
+          ./sync.sh --check --target "$RUNNER_TEMP/t"
+
+      - name: unknown argument exits 2
+        run: |
+          set +e
+          ./sync.sh --bogus >/dev/null 2>&1
+          code=$?
+          set -e
+          test "$code" = "2"
+
+      - name: local edit is backed up
+        run: |
+          echo "my line" >> "$RUNNER_TEMP/t/AGENTS.md"
+          ./sync.sh --target "$RUNNER_TEMP/t" | grep -q "backup: AGENTS.md.bak"
+          grep -q "my line" "$RUNNER_TEMP/t/AGENTS.md.bak"
+          ./sync.sh --check --target "$RUNNER_TEMP/t"
+
+      - name: foreign AGENTS.md is left intact
+        run: |
+          mkdir -p "$RUNNER_TEMP/f"
+          printf '%s\n' '<!-- agent-ops mentioned -->' > "$RUNNER_TEMP/f/AGENTS.md"
+          set +e
+          ./sync.sh --target "$RUNNER_TEMP/f" >/dev/null 2>&1
+          code=$?
+          set -e
+          test "$code" = "1"
+          test "$(cat "$RUNNER_TEMP/f/AGENTS.md")" = "<!-- agent-ops mentioned -->"
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install, then check exits 0
+        shell: pwsh
+        run: |
+          $t = Join-Path $env:RUNNER_TEMP 't'
+          ./sync.ps1 -Target $t
+          if ($LASTEXITCODE -ne 0) { throw "install failed: $LASTEXITCODE" }
+          ./sync.ps1 -Check -Target $t
+          if ($LASTEXITCODE -ne 0) { throw "check failed: $LASTEXITCODE" }
+
+      - name: unknown argument exits 2
+        shell: pwsh
+        run: |
+          ./sync.ps1 -Bogus
+          if ($LASTEXITCODE -ne 2) { throw "expected exit 2, got $LASTEXITCODE" }
+
+      - name: local edit is backed up
+        shell: pwsh
+        run: |
+          $t = Join-Path $env:RUNNER_TEMP 't'
+          Add-Content -Path (Join-Path $t 'AGENTS.md') -Value 'my line'
+          ./sync.ps1 -Target $t
+          if ($LASTEXITCODE -ne 0) { throw "install failed: $LASTEXITCODE" }
+          if (-not (Select-String -Path (Join-Path $t 'AGENTS.md.bak') -Pattern 'my line' -Quiet)) {
+            throw 'no backup of the edited AGENTS.md'
+          }
+
+      - name: foreign AGENTS.md is left intact
+        shell: pwsh
+        run: |
+          $f = Join-Path $env:RUNNER_TEMP 'f'
+          New-Item -ItemType Directory -Path $f -Force | Out-Null
+          Set-Content -Path (Join-Path $f 'AGENTS.md') -Value '<!-- agent-ops mentioned -->'
+          ./sync.ps1 -Target $f
+          if ($LASTEXITCODE -ne 1) { throw "expected exit 1, got $LASTEXITCODE" }
+          $txt = (Get-Content -LiteralPath (Join-Path $f 'AGENTS.md') -Raw).Trim()
+          if ($txt -ne '<!-- agent-ops mentioned -->') { throw 'foreign file was changed' }

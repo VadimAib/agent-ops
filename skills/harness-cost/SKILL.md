@@ -15,10 +15,14 @@ Each figure comes with the command that produced it.
 |---|---|
 | Session spend and tokens | SQLite `opencode.db`, table `session_v2` |
 | Step spend and tokens | same file, `session_message`, `type='assistant'`, JSON in `data` |
-| Provider prices | the provider's model catalog (`<base>/api/v1/models` for OpenAI-compatible ones): fields `pricing` and `currency` |
+| Provider prices | the provider's model catalog (`<base>/api/v1/models` for OpenAI-compatible ones): `top_provider.pricing`, and `currency` sits **inside** `pricing` |
 
 Windows path: `%USERPROFILE%\.local\share\opencode\opencode.db`.
 Open it **read-only**: `file:<path>?mode=ro`, or you risk disturbing a live db.
+
+`currency` is not a sibling of `pricing`: in the catalogue used for this
+measurement it is a field of `top_provider.pricing` (2026-11-18, `"currency":
+"RUB"`). Read it from there before converting any number into money.
 
 Columns that are easy to get wrong:
 
@@ -72,10 +76,20 @@ for name, lo, hi in [("1-9", 1, 10), ("10-29", 10, 30), ("30-59", 30, 60),
           f"{round(sum(x[0] for x in sel) / len(sel)) if sel else '-'}")
 
 cost = dict(c.execute("select id, coalesce(cost, 0) from session_v2"))
+parent = dict(c.execute("select id, parent_id from session_v2"))
 long_ids = [s for s, v in sess.items() if len(v) >= 120]
-print("sessions total:", len(sess), "| 120+ steps:", len(long_ids),
+print("sessions total:", len(sess), "| with billed steps:",
+      sum(1 for v in sess.values() if v), "| 120+ steps:", len(long_ids),
       "| their cost share, %:",
       round(100 * sum(cost[s] for s in long_ids) / sum(cost.values()), 1))
+
+# subagent comparison; filter: sessions that have at least one billed step
+billed = [s for s in sess if sess[s]]
+kids = [s for s in billed if parent[s] is not None]
+roots = [s for s in billed if parent[s] is None]
+avg = lambda xs: sum(cost[s] for s in xs) / len(xs)
+print("child:", len(kids), "| root:", len(roots),
+      "| root/child ratio:", round(avg(roots) / avg(kids), 1))
 ```
 
 ## 3. The formula
@@ -99,28 +113,30 @@ Snapshot of the db taken when the §2 script was run:
 
 | Metric | Value |
 |---|---|
-| Billed steps | 19,614 |
-| Cache per step | 102,721 tokens |
-| Fresh input per step | 1,403 tokens |
-| Output per step | 295 tokens |
+| Billed steps | 19,813 |
+| Cache per step | 102,602 tokens |
+| Fresh input per step | 1,395 tokens |
+| Output per step | 296 tokens |
 | **Cache share of step tokens** | **98.4%** |
 
 So ~98% of a step's tokens are the same prefix read again. Hence: shaving the
 output price is invisible in the bill, shaving the context length is not.
 
-Cache per step by session length (same script):
+Cache per step by session length (same script). The Sessions column counts only
+sessions that have **billed steps** — 144 of 421 on that date; the other 277
+never produced a billed step, so they are absent both here and in the cost share:
 
 | Steps in session | Sessions | Cache per step |
 |---|---|---|
-| 1–9 | 11 | 25,192 |
-| 10–29 | 48 | 59,391 |
+| 1–9 | 13 | 23,676 |
+| 10–29 | 47 | 60,121 |
 | 30–59 | 41 | 80,760 |
-| 60–119 | 18 | 87,497 |
-| 120+ | 24 | 109,494 |
+| 60–119 | 19 | 86,630 |
+| 120+ | 24 | 109,385 |
 
-A long session carries **4.3×** more cache per step than a short one
-(109,494 / 25,192). Across 417 sessions: 24 sessions of 120+ steps account for
-**77.1%** of all recorded cost (same script, last three lines).
+A long session carries **4.6×** more cache per step than a short one
+(109,385 / 23,676). Of all 421 sessions, 24 with 120+ steps account for
+**77.0%** of all recorded cost (same script, last block).
 
 Prefix (A/B on one profile, two directories, one step each):
 
@@ -134,25 +150,28 @@ Push-Location .\rules; opencode run -m <provider/model> --title prefix-rules "An
 | Directory | Step prefix |
 |---|---|
 | empty | 7,345 tokens |
-| with `AGENTS.md`, 1,697 chars (1,702 bytes) | 7,785 tokens |
+| with `AGENTS.md`, 1,709 chars (1,714 bytes) | 7,788 tokens |
 
-The difference is **440 tokens** for the whole rule file. That is cheaper than
+The difference is **443 tokens** for the whole rule file. That is cheaper than
 one extra project file read; instructions get expensive only in the tens of
 thousands of characters.
 
-Subagent versus root session: 103 child sessions against 39 root ones are on
-average **9.9× cheaper**. Same reason: a child session has a short history.
+Subagent versus root session: 103 child sessions against 41 root ones are on
+average **9.5× cheaper**. Filter, as in the §2 script: only sessions with at
+least one billed step; without it the db also counts sessions that never
+produced a billed step (306 child and 115 root sessions on that date, and the
+ratio stops being comparable).
 
 ## 5. Levers and their ceilings
 
 | Lever | Effect | Ceiling / caveat |
 |---|---|---|
-| Split long tasks into sessions | cache/step 109,494 → 59,391 (120+ steps versus 10–29): up to **−46%** per step | will not go below the base prefix (25,192); context is lost, so write a short brief |
-| Heavy reading goes to a subagent | on average **9.9×** cheaper | only if the reading is really bulky; otherwise the brief costs more than it saves |
-| Trim the prefix: instructions, schemas, unused tools | 1,000 prefix tokens × steps × `p_cache` | our whole `AGENTS.md` is 440 tokens; trimming rules is pointless, trimming a 50k-char project file is not |
+| Split long tasks into sessions | cache/step 109,385 → 60,121 (120+ steps versus 10–29): up to **−45%** per step | will not go below the base prefix (23,676); context is lost, so write a short brief |
+| Heavy reading goes to a subagent | on average **9.5×** cheaper | only if the reading is really bulky; otherwise the brief costs more than it saves |
+| Trim the prefix: instructions, schemas, unused tools | 1,000 prefix tokens × steps × `p_cache` | our whole `AGENTS.md` is 443 tokens; trimming rules is pointless, trimming a 50k-char project file is not |
 | Read a file once, in slices, later in the session | 30,000 tokens at step 5 of 50 are paid 45 times, at step 45 only 5 times | needs a session plan, or the read "will be needed later" turns into a re-read |
 | Switch model within the same class | ≈ 0 | cheap models often have a higher `p_cache`; compare `p_cache` |
-| Reasoning effort | changes output and reasoning | output is ~295 of ~104,400 step tokens, reasoning is a fraction of a percent: ceiling well under 1% |
+| Reasoning effort | changes output and reasoning | output is ~296 of ~104,300 step tokens, reasoning is a fraction of a percent: ceiling well under 1% |
 | Context-compression plugins | negative | see §6 |
 
 ## 6. Why context compression loses money
