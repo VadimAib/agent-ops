@@ -1,2 +1,0 @@
-# Bash scripts must be stored with LF: CRLF breaks the shebang in WSL and Git Bash.
-*.sh text eol=lf

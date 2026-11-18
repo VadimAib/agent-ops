@@ -1,4 +1,3 @@
-<!-- agent-ops: installed by sync.ps1 and sync.sh. Edits here will be overwritten; change the repo. -->
 # Global rules (all projects)
 
 A project `AGENTS.md` overrides these rules where they disagree.
