@@ -1,0 +1,2 @@
+# Скрипт для bash должен лежать с LF: CRLF ломает shebang в WSL и Git Bash.
+*.sh text eol=lf
