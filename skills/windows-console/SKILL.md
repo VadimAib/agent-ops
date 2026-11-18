@@ -1,236 +1,236 @@
 ---
 name: windows-console
-description: Как выполнять команды на Windows + pwsh без потерь — кириллица и «????»/UnicodeEncodeError, немой пайплайн Select-String, отказ строгого сканера команд (invalid-structure) и обход через Out-File/edit, где bash это WSL, а где Git Bash, UTF-16 в выводе wsl, кавычки и пробелы в путях, коды возврата. Загружать при любой непонятной ошибке консоли, перед python/pwsh-однострочниками, при разборе «почему не находится текст» и «почему команда не выполнилась».
+description: Running commands on Windows + pwsh without losing output — non-ASCII text and "????"/UnicodeEncodeError, the silent pipeline (Select-String versus a file plus Get-Content), the strict command scanner rejecting a command (invalid-structure) and the Out-File/edit workaround, whether bash means WSL or Git Bash, UTF-16 in wsl output, quotes and spaces in paths, exit codes. Load it for any puzzling console error, before python/pwsh one-liners, and when "the text is not found" or "the command did not run".
 ---
 
-# windows-console — команды на Windows без потерь
+# windows-console — commands on Windows without losses
 
-Проверено 18.11.2026: `$PSVersionTable.PSVersion` → 7.6.10, `python --version` →
-3.14.3, `wsl --version` → WSL 3.0.5.0. На других версиях поведение может отличаться:
-каждый раздел заканчивается командой-проверкой, а не обещанием.
+Verified 2026-11-18: `$PSVersionTable.PSVersion` → 7.6.10, `python --version` →
+3.14.3, `wsl --version` → WSL 3.0.5.0. Other versions may behave differently:
+each section ends with a check command, not a promise.
 
-## 0. Порядок действий при отказе
+## 0. What to do when something fails
 
-1. Прочитать ошибку целиком: она почти всегда называет сущность (кодировка,
-   парсер, отсутствующий файл), а не «команда не сработала».
-2. Проверить, выполнилось ли хоть что-то: `$LASTEXITCODE`, `$?`, наличие файла.
-3. Сузить до одной команды без пайплайна — так причина видна сразу.
-4. Не повторять ту же строку «ещё раз»: при отказе парсера повтор даст тот же
-   отказ, а побочные эффекты (запись файла) могут уже произойти.
+1. Read the whole error: it almost always names the entity (encoding, parser,
+   missing file), not just "the command did not work".
+2. Check whether anything ran at all: `$LASTEXITCODE`, `$?`, does the file exist.
+3. Narrow it down to one command without a pipeline — the cause becomes visible.
+4. Do not retry the same string "once more": a parser rejection will repeat,
+   and side effects (a written file) may already have happened.
 
-## 1. Кодировки: `????` и UnicodeEncodeError
+## 1. Encodings: `????` and UnicodeEncodeError
 
-**Симптом.** Python печатает `????`, `�`, или падает с `UnicodeEncodeError:
-'charmap' codec can't encode characters`. В файл при этом пишется правильный текст.
+**Symptom.** Python prints `????`, `�`, or dies with `UnicodeEncodeError:
+'charmap' codec can't encode characters`. The file it writes is fine.
 
-**Причина.** Дочерний процесс кодирует stdout в кодовую страницу консоли
-(обычно 1251/866), а не в UTF-8.
+**Cause.** The child process encodes stdout with the console code page
+(usually 1251/866), not UTF-8.
 
-**Лечение.** Задать кодировку до запуска python, в той же сессии:
+**Fix.** Set the encoding before starting python, in the same session:
 
 ```pwsh
 $env:PYTHONIOENCODING = 'utf-8'
-$env:PYTHONUTF8 = '1'          # то же для файловых операций внутри python
-[Console]::OutputEncoding = [Text.Encoding]::UTF8   # как читает сама консоль
+$env:PYTHONUTF8 = '1'          # same for file operations inside python
+[Console]::OutputEncoding = [Text.Encoding]::UTF8   # how the console itself reads
 python .\script.py
 ```
 
-**Проверка.**
+**Check.**
 
 ```pwsh
-$env:PYTHONIOENCODING='utf-8'; python -c "print('привет')"
+$env:PYTHONIOENCODING='utf-8'; python -c "print('日本語')"
 ```
 
-Если в ответе снова `????` — переменная не попала в процесс (запуск через
-планировщик, `Start-Process`, другой shell): передайте её явно.
+If you still see `????`, the variable did not reach the process (Task Scheduler,
+`Start-Process`, another shell): pass it explicitly.
 
-**Отдельный случай: `????` от самого PowerShell.** Если кириллицу теряет не
-python, а `Write-Output`/`Write-Host`, виновата кодовая страница консоли
-(437 — умолчание англоязычной Windows). Проверка и лечение:
+**Separate case: `????` produced by PowerShell itself.** If `Write-Output` or
+`Write-Host` loses non-ASCII text, the console code page is to blame (437 is the
+default on English Windows). Check and work around:
 
 ```pwsh
-[Console]::OutputEncoding.WebName     # ibm437 — кириллицы нет
-[Console]::OutputEncoding.GetBytes('Я') -join ','   # 63 — символ замены
+[Console]::OutputEncoding.WebName     # ibm437 — cannot encode CJK
+[Console]::OutputEncoding.GetBytes('日') -join ','   # 63 — replacement character
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
-[Console]::Out.WriteLine('привет')    # пишет байты напрямую, без хоста
+[Console]::Out.WriteLine('日本語')    # writes bytes directly, bypassing the host
 ```
 
-Файл при этом остаётся корректным: `[IO.File]::ReadAllBytes('.\out.txt')[0..1]`
-даёт `208,191` — это UTF-8 «п». Ломается только вывод на экран. `chcp 65001`
-изнутри сессии не помогает: хосту кодировка уже задана при старте.
-Проверено 18.11.2026, pwsh 7.6.10, `ibm437`.
+The file itself stays correct: `[IO.File]::ReadAllBytes('.\out.txt')[0..2]` gives
+`230,151,165` — UTF-8 for "日". Only the screen output breaks. `chcp 65001` from
+inside the session does not help: the host binds its encoding at start-up.
+Verified 2026-11-18, pwsh 7.6.10, `ibm437`.
 
-## 2. Немой пайплайн: `Select-String` не то же, что файл + `Get-Content`
+## 2. The silent pipeline: `Select-String` is not the same as a file plus `Get-Content`
 
-**Симптом.** `Get-Content x.log | Select-String 'ошибка'` возвращает 0 строк,
-хотя текст в файле есть. Или возвращает объекты, которые нельзя передать
-дальше как текст.
+**Symptom.** `Get-Content x.log | Select-String 'error'` returns 0 rows although
+the text is there. Or it returns objects you cannot pass on as text.
 
-**Причины — две, и они складываются:**
+**Two causes that add up:**
 
-- `Select-String` отдаёт объекты `MatchInfo` (свойства `.Line`, `.LineNumber`),
-  а не строки. В пайплайн уходит объект; в консоль — форматирование.
-- Если файл в другой кодировке (UTF-16 от нативной программы, 1251 от старого
-  инструмента), кириллический шаблон не совпадёт — молча, без ошибки.
+- `Select-String` emits `MatchInfo` objects (properties `.Line`, `.LineNumber`),
+  not strings. A pipeline receives the object; the console shows formatting.
+- If the file is in another encoding (UTF-16 from a native tool, 1251 from an old
+  one), a non-ASCII pattern will not match — silently, with no error.
 
-**Лечение.** Сначала определить кодировку по первым байтам, потом читать с явной
-кодировкой; результат работы нативной программы — писать в файл и читать файл.
+**Fix.** Determine the encoding from the first bytes, then read with an explicit
+encoding; capture native output into a file and read the file.
 
 ```pwsh
-# 1. что за кодировка: 255,254 = UTF-16 LE, 239,187,191 = UTF-8 BOM, иначе — угадывать
+# 1. which encoding: 255,254 = UTF-16 LE, 239,187,191 = UTF-8 BOM, otherwise guess
 [IO.File]::ReadAllBytes('.\out.txt')[0..3] -join ','
 
-# 2. писать в файл, а не в пайплайн
+# 2. write to a file instead of a pipeline
 & native.exe 2>&1 | Tee-Object -FilePath .\out.txt
 Get-Content .\out.txt -Encoding utf8
 
-# 3. если нужен поиск по объектам — забрать строку явно
-Get-Content .\out.txt -Encoding utf8 | Select-String 'ошибка' | ForEach-Object Line
+# 3. if you need to search objects, take the line explicitly
+Get-Content .\out.txt -Encoding utf8 | Select-String 'error' | ForEach-Object Line
 ```
 
-**Правило.** Пайплайн, который «ничего не нашёл», — это утверждение о кодировке,
-а не о содержимом. Сначала `Get-Content -Encoding`, потом `Select-String`.
+**Rule.** A pipeline that "found nothing" is a statement about the encoding, not
+about the content. `Get-Content -Encoding` first, `Select-String` second.
 
-**Проверка.** Создайте файл в UTF-16 и попробуйте найти в нём кириллицу без
-`-Encoding`: совпадений не будет, с `-Encoding unicode` — будут.
+**Check.** Create a UTF-16 file and search it for non-ASCII text without
+`-Encoding`: no matches; with `-Encoding unicode`: matches.
 
-## 3. Отказ строгого сканера команд: `invalid-structure`
+## 3. The strict command scanner: `invalid-structure`
 
-**Симптом.** Вместо выполнения приходит текст вида
-`Portable shell scanner cannot analyze command: invalid-structure`. Команда не
-запускалась вообще, код возврата отношения к делу не имеет.
+**Symptom.** Instead of running, you get
+`Portable shell scanner cannot analyze command: invalid-structure`. The command
+never started; its exit code is meaningless.
 
-**Причина.** Сканер команд (обёртка вокруг оболочки) разбирает строку формально,
-а не исполняет её. Его ломают: вложенные разнотипные кавычки, многострочные
-конструкции, цепочки методов внутри пайплайна (`$t.Replace(...)`,
-`($x -split 'a')[0]` в аргументе), `--%`, незакрытые скобки, heredoc в одну строку.
+**Cause.** The scanner (a wrapper around the shell) parses the line formally
+instead of executing it. It is broken by mixed nested quotes, multi-line
+constructs, method chains inside a pipeline (`$t.Replace(...)`,
+`($x -split 'a')[0]` as an argument), `--%`, unbalanced brackets, a heredoc on
+one line.
 
-**Лечение — не бороться с парсером, а убрать сложность из командной строки:**
+**Fix — do not fight the parser, take the complexity out of the command line:**
 
 ```pwsh
 $code = @'
-# любая сложная логика, многострочно, с кавычками
+# any complex logic, multi-line, with quotes
 '@
 $p = Join-Path $env:TEMP 'task.ps1'
 $code | Out-File -FilePath $p -Encoding utf8
 & $p
 ```
 
-- Файл править инструментом `edit`, а не выражением `$text.Replace('a','b')`
-  в командной строке: замена «на месте» — самый частый источник
-  `invalid-structure`, и она же портит файл при сбое.
-- Длинную команду разбивать на простые вызовы: одна команда — одна операция.
-- Если после `invalid-structure` что-то уже записалось — проверить файл: часть
-  строки могла выполниться до места отказа.
+- Edit files with an `edit` tool, not with `$text.Replace('a','b')` on the
+  command line: an in-place replacement is the most common source of
+  `invalid-structure`, and it trashes the file if it fails.
+- Break a long command into simple calls: one command, one operation.
+- If something was already written before the rejection, check the file: part of
+  the line may have run before the failure point.
 
-**Проверка.** Сложная строка должна давать `invalid-structure`; тот же текст,
-положенный в `.ps1` через `Out-File`, — выполняться.
+**Check.** The complex string should produce `invalid-structure`; the same text
+saved to a `.ps1` via `Out-File` should run.
 
-## 4. `bash` — это WSL или Git Bash, и это разные вещи
+## 4. `bash` is WSL or Git Bash, and they are different
 
-**Симптом.** Скрипт работает у одного человека и падает у другого: не тот
-`bash`, не те пути, не те переводы строк.
+**Symptom.** A script works for one person and fails for another: wrong `bash`,
+wrong paths, wrong line endings.
 
-**Как отличить.**
+**Tell them apart.**
 
 ```pwsh
 Get-Command bash -All | Select-Object -ExpandProperty Source
 ```
 
-- `C:\Windows\system32\bash.exe` (и заглушка в `...\WindowsApps\bash.exe`) — **WSL**.
-- `%ProgramFiles%\Git\bin\bash.exe` или `%LOCALAPPDATA%\Programs\Git\bin\bash.exe` —
-  **Git Bash** (если установлен; на чистой Windows его нет).
+- `C:\Windows\system32\bash.exe` (and the `...\WindowsApps\bash.exe` stub) — **WSL**.
+- `%ProgramFiles%\Git\bin\bash.exe` or `%LOCALAPPDATA%\Programs\Git\bin\bash.exe` —
+  **Git Bash** (if installed; a clean Windows does not have it).
 
-Второй признак — ядро:
+Second sign — the kernel:
 
 ```pwsh
 bash -c 'uname -s -r'
-# WSL:  Linux ... microsoft-standard-WSL2
+# WSL:      Linux ... microsoft-standard-WSL2
 # Git Bash: MINGW64_NT-10.0 ...
 ```
 
-**Различия, на которых ломается:**
+**Differences that break scripts:**
 
 | | WSL | Git Bash |
 |---|---|---|
-| Путь к диску C: | `/mnt/c/...` | `/c/...` |
-| `wslpath` | есть | нет |
-| `cmd.exe`, `powershell.exe` | доступны | доступны |
-| Домашний каталог | свой (Linux) | `%USERPROFILE%` |
-| Переводы строк | нужен LF | LF, CRLF ломает shebang |
+| Path to drive C: | `/mnt/c/...` | `/c/...` |
+| `wslpath` | present | absent |
+| `cmd.exe`, `powershell.exe` | available | available |
+| Home directory | its own (Linux) | `%USERPROFILE%` |
+| Line endings | needs LF | LF; CRLF breaks the shebang |
 
-**Лечение.** В инструкциях писать интерпретатор явно (`wsl bash -lc '...'` или
-`& "$env:ProgramFiles\Git\bin\bash.exe" -lc '...'`), а не `bash`. Скрипты хранить
-с LF: `.gitattributes` → `*.sh text eol=lf`.
+**Fix.** Name the interpreter explicitly in instructions (`wsl bash -lc '...'` or
+`& "$env:ProgramFiles\Git\bin\bash.exe" -lc '...'`), never bare `bash`. Store
+scripts with LF: `.gitattributes` → `*.sh text eol=lf`.
 
-**Проверка.** `bash -c 'uname -s'` — ответ должен совпасть с тем, что вы ждёте.
+**Check.** `bash -c 'uname -s'` must answer what you expect.
 
-## 5. `wsl -l -v` печатает UTF-16, и пайплайн его теряет
+## 5. `wsl -l -v` prints UTF-16 and a pipeline loses it
 
-**Симптом.** `wsl -l -v | Select-String 'Ubuntu'` не находит ничего; в выводе
-буквы разнесены пробелами (`N A M E`), в строке встречаются нулевые символы.
+**Symptom.** `wsl -l -v | Select-String 'Ubuntu'` finds nothing; the output shows
+letters spaced out (`N A M E`), with NUL characters in the string.
 
-**Причина.** `wsl.exe` пишет список в UTF-16 LE, а PowerShell читает байты как
-однобайтовую кодировку: ASCII-символ + NUL на каждый символ. `Select-String`
-сравнивает то, чего в строке нет.
+**Cause.** `wsl.exe` writes the list as UTF-16 LE, while PowerShell reads the
+bytes as a single-byte encoding: ASCII character + NUL per character.
+`Select-String` compares against something that is not there.
 
-**Лечение.** Включить UTF-8-режим самого `wsl` на время вызова:
+**Fix.** Turn on `wsl`'s own UTF-8 mode for the call:
 
 ```pwsh
 $env:WSL_UTF8 = '1'
 wsl -l -v
 ```
 
-То же касается `wsl --version`.
+The same applies to `wsl --version`.
 
-**Проверка.** Вывод `wsl -l -v` после `WSL_UTF8=1` — обычный текст без NUL
-(проверено 18.11.2026 на WSL 3.0.5.0).
+**Check.** With `WSL_UTF8=1` the output of `wsl -l -v` is plain text without NULs
+(verified 2026-11-18 on WSL 3.0.5.0).
 
-## 6. Кавычки, пробелы и пути
+## 6. Quotes, spaces and paths
 
 ```pwsh
-& 'C:\Program Files\App\app.exe' --flag 'значение с пробелом'   # вызов по пути
-Get-Content -LiteralPath '.\файл [1].txt'                       # скобки не шаблон
+& 'C:\Program Files\App\app.exe' --flag 'value with space'   # call by path
+Get-Content -LiteralPath '.\file [1].txt'                    # brackets are not a pattern
 ```
 
-- Путь с пробелами — в кавычки и через `&`; без `&` строка не запустится.
-- `-LiteralPath` вместо `-Path`, когда в имени есть `[`, `]`, `*`, `?`.
-- Путь, заканчивающийся на `\`, перед закрывающей кавычкой экранирует её:
-  `"C:\dir\"` — ошибка. Писать `C:\dir` или `C:/dir`.
-- `~` и `%USERPROFILE%` подставляются в pwsh (`$env:USERPROFILE`), но не внутри
-  одинарных кавычек.
-- `--%` останавливает разбор строки PowerShell — только для нативных программ
-  и только когда без этого нельзя.
+- A path with spaces goes in quotes and through `&`; without `&` the string will
+  not start a program.
+- `-LiteralPath` instead of `-Path` when the name contains `[`, `]`, `*`, `?`.
+- A path ending in `\` escapes the closing quote: `"C:\dir\"` is an error. Write
+  `C:\dir` or `C:/dir`.
+- `~` and `%USERPROFILE%` are expanded by pwsh (`$env:USERPROFILE`), but not
+  inside single quotes.
+- `--%` stops PowerShell parsing — only for native programs, and only when
+  nothing else works.
 
-## 7. Коды возврата
+## 7. Exit codes
 
-| Что проверять | Когда |
+| What to check | When |
 |---|---|
-| `$LASTEXITCODE` | после нативной программы (`git`, `python`, `node`) |
-| `$?` | после командлета (но при `-ErrorAction` по умолчанию он мягкий) |
-| `try/catch` + `-ErrorAction Stop` | командлет должен падать, а не писать в поток ошибок |
+| `$LASTEXITCODE` | after a native program (`git`, `python`, `node`) |
+| `$?` | after a cmdlet (but with the default `-ErrorAction` it is soft) |
+| `try/catch` + `-ErrorAction Stop` | the cmdlet must fail instead of writing to the error stream |
 
 ```pwsh
 git status
 if ($LASTEXITCODE -ne 0) { throw "git status: $LASTEXITCODE" }
 ```
 
-- Нативная программа с ненулевым кодом **не** бросает исключение: код надо
-  проверять самому.
-- В пайплайне `$LASTEXITCODE` — от последней нативной команды, а не от первой
-  упавшей.
-- pwsh 7.3+: `$PSNativeCommandUseErrorActionPreference = $true` заставляет
-  нативные ошибки уважать `$ErrorActionPreference`.
-- В скрипте заканчивать явно: `exit 0` / `exit 1`. Молчаливый конец скрипта —
-  это 0, даже если внутри всё сломалось.
+- A native program with a non-zero code does **not** throw: check the code yourself.
+- In a pipeline `$LASTEXITCODE` is from the last native command, not from the
+  first one that failed.
+- pwsh 7.3+: `$PSNativeCommandUseErrorActionPreference = $true` makes native
+  failures respect `$ErrorActionPreference`.
+- End a script explicitly: `exit 0` / `exit 1`. A script that just falls off the
+  end is 0, even if everything inside broke.
 
-**Проверка.** `cmd /c exit 3; $LASTEXITCODE` → `3`.
+**Check.** `cmd /c exit 3; $LASTEXITCODE` → `3`.
 
-## Чек-лист перед запуском
+## Checklist before you run anything
 
-- [ ] Кириллица в выводе: `PYTHONIOENCODING`/`OutputEncoding` заданы.
-- [ ] Текст ищется по файлу с явной `-Encoding`, а не по пайплайну.
-- [ ] Сложная логика — в `.ps1`, не в одной строке.
-- [ ] `bash` назван явно (WSL или Git Bash).
-- [ ] Пути в кавычках, `-LiteralPath` где нужно.
-- [ ] `$LASTEXITCODE` проверен там, где вызывалась нативная программа.
+- [ ] Non-ASCII output: `PYTHONIOENCODING`/`OutputEncoding` are set.
+- [ ] Text is searched in a file with explicit `-Encoding`, not through a pipeline.
+- [ ] Complex logic lives in a `.ps1`, not on one line.
+- [ ] `bash` is named explicitly (WSL or Git Bash).
+- [ ] Paths are quoted, `-LiteralPath` where needed.
+- [ ] `$LASTEXITCODE` is checked wherever a native program was called.

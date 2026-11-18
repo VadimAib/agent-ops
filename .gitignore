@@ -1,12 +1,12 @@
-# локальные замеры и снимки баз
+# local measurements and db snapshots
 .measure/
 
-# базы и их журналы
+# databases and their journals
 *.db
 *.db-wal
 *.db-shm
 
-# мусор запусков
+# run junk
 *.log
 __pycache__/
 .venv/

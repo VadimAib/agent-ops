@@ -1,43 +1,42 @@
 ---
 name: harness-cost
-description: Как измерить и снизить стоимость агентской работы — где лежат числа (SQLite базы OpenCode), SQL-рецепты профиля шага, формула «префикс × число шагов», таблица рычагов с потолками, почему плагины сжатия контекста убыточны, протокол замера «до/после». Загружать на вопросы «сколько это стоит», «как сэкономить», «почему сессия дорогая», «какая модель дешевле» и перед любой сметой.
+description: How to measure and cut the cost of agent work — where the numbers live (OpenCode SQLite db), SQL recipes for the per-step profile, the "prefix × steps" formula, levers with their ceilings, why context-compression plugins lose money, and a before/after measurement protocol. Load it for "how much does this cost", "how do I save", "why is this session expensive", "which model is cheaper", and before any estimate.
 ---
 
-# harness-cost — стоимость агентской работы
+# harness-cost — the cost of agent work
 
-Все числа ниже — **пример замера** от 18.11.2026 на одной машине
-(OpenCode 2.2.5). Они стареют; воспроизводимость важнее значений.
-Каждая цифра сопровождается командой, которой её получили.
+Every figure below is a **sample measurement** from 2026-11-18 on one machine
+(OpenCode 2.2.5). Numbers age; reproducibility matters more than the values.
+Each figure comes with the command that produced it.
 
-## 1. Где лежат числа
+## 1. Where the numbers live
 
-| Что | Где |
+| What | Where |
 |---|---|
-| Расход и токены сессии | SQLite `opencode.db`, таблица `session_v2` |
-| Расход и токены шага | там же, `session_message`, `type='assistant'`, JSON в `data` |
-| Прайс провайдера | каталог моделей провайдера (`<base>/api/v1/models` у OpenAI-совместимых): поля `pricing` и `currency` |
+| Session spend and tokens | SQLite `opencode.db`, table `session_v2` |
+| Step spend and tokens | same file, `session_message`, `type='assistant'`, JSON in `data` |
+| Provider prices | the provider's model catalog (`<base>/api/v1/models` for OpenAI-compatible ones): fields `pricing` and `currency` |
 
-Windows-путь: `%USERPROFILE%\.local\share\opencode\opencode.db`.
-Открывать **только на чтение**: `file:<путь>?mode=ro`, иначе можно задеть
-работающую базу.
+Windows path: `%USERPROFILE%\.local\share\opencode\opencode.db`.
+Open it **read-only**: `file:<path>?mode=ro`, or you risk disturbing a live db.
 
-Колонки, на которых легко ошибиться:
+Columns that are easy to get wrong:
 
 - `session_v2`: `id`, `parent_id`, `directory`, `cost`, `tokens_input`,
   `tokens_output`, `tokens_reasoning`, `tokens_cache_read`, `tokens_cache_write`.
-- `session_message`: `id`, `session_id` (**snake_case**, не `sessionId`),
-  `type`, `seq` (**не** `sequence`), `data` — JSON:
+- `session_message`: `id`, `session_id` (**snake_case**, not `sessionId`),
+  `type`, `seq` (**not** `sequence`), `data` — JSON with
   `tokens.input`, `tokens.output`, `tokens.reasoning`,
   `tokens.cache.read`, `tokens.cache.write`, `cost`, `model`.
 
-## 2. Как прочитать: один скрипт на всё
+## 2. Reading them: one script
 
-Кладём в файл и запускаем (в Windows перед python — `PYTHONIOENCODING=utf-8`,
-см. скилл `windows-console`):
+Save to a file and run it (on Windows set `PYTHONIOENCODING=utf-8` first, see the
+`windows-console` skill):
 
 ```python
-# measure.py — профиль шага и структура сессий
-# базу можно подменить снимком: set OPENCODE_DB=<файл>
+# measure.py — per-step profile and session structure
+# point it at a snapshot instead of the live db: set OPENCODE_DB=<file>
 import sqlite3, json, os
 
 db = os.environ.get("OPENCODE_DB") or os.path.expandvars(
@@ -51,7 +50,7 @@ for sid, data in c.execute("select session_id, data from session_message "
         continue
     m = json.loads(data)
     t = m.get("tokens") or {}
-    if (m.get("cost") or 0) > 0:                       # только тарифицированные
+    if (m.get("cost") or 0) > 0:                       # billed steps only
         sess[sid].append(((t.get("cache") or {}).get("read") or 0,
                           t.get("input") or 0, t.get("output") or 0))
 
@@ -60,144 +59,144 @@ n = len(rows)
 cache = sum(r[0] for r in rows)
 inp = sum(r[1] for r in rows)
 out = sum(r[2] for r in rows)
-print("оплаченных шагов:", n)
-print("кэш/шаг:", round(cache / n), "| свежий вход/шаг:", round(inp / n),
-      "| выход/шаг:", round(out / n))
-print("доля кэша, %:", round(100 * cache / (cache + inp + out), 1))
+print("billed steps:", n)
+print("cache/step:", round(cache / n), "| fresh input/step:", round(inp / n),
+      "| output/step:", round(out / n))
+print("cache share, %:", round(100 * cache / (cache + inp + out), 1))
 
 for name, lo, hi in [("1-9", 1, 10), ("10-29", 10, 30), ("30-59", 30, 60),
                      ("60-119", 60, 120), ("120+", 120, 10 ** 9)]:
     sel = [x for v in sess.values() if lo <= len(v) < hi for x in v]
     cnt = sum(1 for v in sess.values() if lo <= len(v) < hi)
-    print(f"длина {name}: сессий {cnt}, кэш/шаг "
+    print(f"length {name}: sessions {cnt}, cache/step "
           f"{round(sum(x[0] for x in sel) / len(sel)) if sel else '-'}")
 
 cost = dict(c.execute("select id, coalesce(cost, 0) from session_v2"))
 long_ids = [s for s, v in sess.items() if len(v) >= 120]
-print("сессий всего:", len(sess), "| от 120 шагов:", len(long_ids),
-      "| их доля стоимости, %:",
+print("sessions total:", len(sess), "| 120+ steps:", len(long_ids),
+      "| their cost share, %:",
       round(100 * sum(cost[s] for s in long_ids) / sum(cost.values()), 1))
 ```
 
-## 3. Главная формула
+## 3. The formula
 
 ```
-цена_шага ≈ свежий_вход × p_in + кэш × p_cache + выход × p_out + запись_кэша × p_cw
-цена_сессии ≈ Σ по шагам;  в стационарном режиме ≈ (префикс + история) × p_cache × шагов
+step_price ≈ fresh_input × p_in + cache × p_cache + output × p_out + cache_write × p_cw
+session_price ≈ Σ over steps;  steady state ≈ (prefix + history) × p_cache × steps
 ```
 
-Следствия, которые не зависят от тарифа:
+Consequences that do not depend on the rate card:
 
-- если `p_cache` заметно ниже `p_in`, то почти весь счёт — это **повторное
-  чтение** одного и того же контекста на каждом шаге;
-- смена модели помогает, только если у неё ниже **цена кэша**, а не цена входа;
-- «сжать контекст» — не экономия, см. §6;
-- реальные рычаги: **сколько токенов несёт каждый шаг** и **сколько шагов**.
+- if `p_cache` is well below `p_in`, almost the whole bill is **re-reading** the
+  same context on every step;
+- switching models helps only if the **cache price** is lower, not the input price;
+- "compress the context" is not a saving, see §6;
+- the real levers are **how many tokens each step carries** and **how many steps**.
 
-## 4. Профиль шага (пример замера, 18.11.2026)
+## 4. Step profile (sample measurement, 2026-11-18)
 
-Снимок базы на момент запуска скрипта из §2:
+Snapshot of the db taken when the §2 script was run:
 
-| Показатель | Значение |
+| Metric | Value |
 |---|---|
-| Оплаченных шагов | 19 614 |
-| Кэш на шаг | 102 721 токен |
-| Свежий вход на шаг | 1 403 токена |
-| Выход на шаг | 295 токенов |
-| **Доля кэша в токенах шага** | **98,4%** |
+| Billed steps | 19,614 |
+| Cache per step | 102,721 tokens |
+| Fresh input per step | 1,403 tokens |
+| Output per step | 295 tokens |
+| **Cache share of step tokens** | **98.4%** |
 
-То есть ~98% токенов шага — это один и тот же префикс, прочитанный заново.
-Отсюда: экономия на цене выхода почти не видна в счёте, а экономия на длине
-контекста видна сразу.
+So ~98% of a step's tokens are the same prefix read again. Hence: shaving the
+output price is invisible in the bill, shaving the context length is not.
 
-Кэш на шаг по длине сессии (там же, тот же скрипт):
+Cache per step by session length (same script):
 
-| Шагов в сессии | Сессий | Кэш на шаг |
+| Steps in session | Sessions | Cache per step |
 |---|---|---|
-| 1–9 | 11 | 25 192 |
-| 10–29 | 48 | 59 391 |
-| 30–59 | 41 | 80 760 |
-| 60–119 | 18 | 87 497 |
-| 120+ | 24 | 109 494 |
+| 1–9 | 11 | 25,192 |
+| 10–29 | 48 | 59,391 |
+| 30–59 | 41 | 80,760 |
+| 60–119 | 18 | 87,497 |
+| 120+ | 24 | 109,494 |
 
-Длинная сессия несёт в **4,3 раза** больше кэша на шаг, чем короткая
-(109 494 / 25 192). На 417 сессиях: 24 сессии от 120 шагов — это **77,1%**
-всей записанной стоимости (тот же скрипт, последние три строки).
+A long session carries **4.3×** more cache per step than a short one
+(109,494 / 25,192). Across 417 sessions: 24 sessions of 120+ steps account for
+**77.1%** of all recorded cost (same script, last three lines).
 
-Префикс (A/B на одном профиле, два каталога, по одному шагу):
+Prefix (A/B on one profile, two directories, one step each):
 
 ```pwsh
 New-Item -ItemType Directory -Force -Path .\empty, .\rules | Out-Null
-Copy-Item <путь>\AGENTS.md .\rules\AGENTS.md
-Push-Location .\empty; opencode run -m <provider/model> --title prefix-empty "Ответь одним словом: ок"; Pop-Location
-Push-Location .\rules; opencode run -m <provider/model> --title prefix-rules "Ответь одним словом: ок"; Pop-Location
+Copy-Item <path>\AGENTS.md .\rules\AGENTS.md
+Push-Location .\empty; opencode run -m <provider/model> --title prefix-empty "Answer in one word: ok"; Pop-Location
+Push-Location .\rules; opencode run -m <provider/model> --title prefix-rules "Answer in one word: ok"; Pop-Location
 ```
 
-| Каталог | Префикс шага |
+| Directory | Step prefix |
 |---|---|
-| пустой | 7 344 токена |
-| с `AGENTS.md` на 1 649 знаков (2 770 байт) | 7 947 токенов |
+| empty | 7,345 tokens |
+| with `AGENTS.md`, 1,697 chars (1,702 bytes) | 7,785 tokens |
 
-Разница — **603 токена** на весь файл правил. Это дешевле, чем один лишний
-перечитанный файл проекта; дорогими инструкции становятся, только когда в них
-десятки тысяч знаков.
+The difference is **440 tokens** for the whole rule file. That is cheaper than
+one extra project file read; instructions get expensive only in the tens of
+thousands of characters.
 
-Субагент против корневой сессии: 103 дочерние против 39 корневых — в среднем
-**в 9,9 раза** дешевле. Причина та же: у дочерней сессии короткая история.
+Subagent versus root session: 103 child sessions against 39 root ones are on
+average **9.9× cheaper**. Same reason: a child session has a short history.
 
-## 5. Рычаги и их потолки
+## 5. Levers and their ceilings
 
-| Рычаг | Что даёт | Потолок / оговорка |
+| Lever | Effect | Ceiling / caveat |
 |---|---|---|
-| Дробить длинные задачи на сессии | кэш/шаг 109 494 → 59 391 (шаг 120+ против 10–29): до **−46%** на шаг | ниже базового префикса (25 192) не опустится; теряется контекст — нужен короткий бриф |
-| Тяжёлое чтение — субагенту | в среднем **×9,9** дешевле | только если чтение действительно объёмное, иначе накладные расходы на бриф |
-| Срезать префикс: инструкции, схемы, лишние инструменты | 1 000 токенов префикса × число шагов × `p_cache` | весь наш `AGENTS.md` — 603 токена; экономить на правилах бессмысленно, на 50-тысячном проектном файле — осмысленно |
-| Читать файл один раз, срезами, ближе к концу | 30 000 токенов на шаге 5 из 50 платятся 45 раз, на шаге 45 — 5 раз | нужен план сессии, иначе чтение «понадобится позже» |
-| Смена модели на тот же класс | ≈ 0 | у дешёвых моделей `p_cache` часто выше; сравнивать `p_cache` |
-| Усилие (`reasoning`) | меняет выход и размышление | выход ≈295 при ≈104 400 токенах шага, вместе с размышлением — доли процента: потолок меньше 1% |
-| Плагины сжатия контекста | отрицательный | см. §6 |
+| Split long tasks into sessions | cache/step 109,494 → 59,391 (120+ steps versus 10–29): up to **−46%** per step | will not go below the base prefix (25,192); context is lost, so write a short brief |
+| Heavy reading goes to a subagent | on average **9.9×** cheaper | only if the reading is really bulky; otherwise the brief costs more than it saves |
+| Trim the prefix: instructions, schemas, unused tools | 1,000 prefix tokens × steps × `p_cache` | our whole `AGENTS.md` is 440 tokens; trimming rules is pointless, trimming a 50k-char project file is not |
+| Read a file once, in slices, later in the session | 30,000 tokens at step 5 of 50 are paid 45 times, at step 45 only 5 times | needs a session plan, or the read "will be needed later" turns into a re-read |
+| Switch model within the same class | ≈ 0 | cheap models often have a higher `p_cache`; compare `p_cache` |
+| Reasoning effort | changes output and reasoning | output is ~295 of ~104,400 step tokens, reasoning is a fraction of a percent: ceiling well under 1% |
+| Context-compression plugins | negative | see §6 |
 
-## 6. Почему сжатие контекста убыточно
+## 6. Why context compression loses money
 
-Пусть `R = p_in / p_cache` — во сколько раз свежий вход дороже чтения кэша.
-Обычный шаг с префиксом `P` стоит ≈ `P × p_cache`. Если префикс изменился,
-этот шаг идёт как свежий вход: `P × p_in = P × p_cache × R`, то есть **лишние
-`(R − 1)` обычных шагов** на каждое изменение.
+Let `R = p_in / p_cache` — how many times dearer fresh input is than a cache read.
+A normal step with prefix `P` costs ≈ `P × p_cache`. If the prefix changed, that
+step goes as fresh input: `P × p_in = P × p_cache × R`, i.e. **`R − 1` extra
+normal steps** for every change.
 
-Пример арифметики (R = 33 — условное число для счёта, подставьте своё;
-P = 100 000 токенов): один промах кэша стоит как **32 обычных шага** с тем же
-префиксом. Чтобы плагин окупился, он должен
-выкинуть больше токенов, чем весь префикс, и не измениться при следующей
-правке — а он меняется на каждой.
+Arithmetic example (`R = 33` is an assumed number for the sum, use your own;
+`P = 100,000` tokens): one cache miss costs as much as **32 normal steps** with
+the same prefix. For a plugin to pay off it must drop more tokens than the whole
+prefix and stay unchanged afterwards — but it changes on every edit.
 
-Практический вывод: экономия — **в объёме работы** (меньше шагов, меньше
-истории, меньше чтений), а не в переписывании уже отправленного контекста.
-Если контекст упирается в лимит модели — это вопрос продолжения работы, а не
-денег: дешевле начать новую сессию с короткой сводкой, чем редактировать старую.
+Practical conclusion: savings come from **less work** (fewer steps, shorter
+history, fewer reads), not from rewriting context that was already sent. If the
+context hits the model limit, that is a question of continuing the work, not of
+money: starting a new session with a short summary is cheaper than editing the
+old one.
 
-## 7. Протокол замера «до/после»
+## 7. Before/after protocol
 
-1. **База.** Один шаг «ответь одним словом» в пустом каталоге, тем же
-   `<provider/model>`, что и рабочие сессии. Токены первого шага — это префикс.
-2. **Сравнивать** `tokens.input + tokens.cache.read` первого шага, а не `cost`:
-   `cost` зависит от попадания в кэш и от того, в какой валюте его записали.
-3. **Одно изменение** за замер. Разница меньше 1–2 тыс. токенов на фоне 20 тыс. —
-   шум; нужен повтор.
-4. **В деньги:** `Δтокенов × p_cache`, для истории — умножить на число шагов.
-   Прайс брать из каталога провайдера, `currency` проверять явно.
-5. **Записать** дату, `<provider/model>`, полученные числа и команду. Без даты
-   число через месяц бесполезно: меняются и модель, и прайс, и набор инструментов.
+1. **Baseline.** One step "answer in one word" in an empty directory, with the
+   same `<provider/model>` as your working sessions. The first step's tokens are
+   the prefix.
+2. **Compare** `tokens.input + tokens.cache.read` of the first step, not `cost`:
+   `cost` depends on cache hits and on the currency it was written in.
+3. **One change** per measurement. A difference under 1–2k tokens against 20k is
+   noise; repeat.
+4. **Into money:** `Δtokens × p_cache`; for history multiply by the step count.
+   Take the price from the provider catalog and check `currency` explicitly.
+5. **Record** the date, `<provider/model>`, the numbers and the command. Without
+   a date a number is useless in a month: model, price and tool set all change.
 
-## 8. Оговорки
+## 8. Caveats
 
-- `cost` в интерфейсе может быть подписан `$`, а считаться в другой валюте:
-  расхождение с прайсом бывает в десятки раз. Сверять `cost` шага с
-  `токены × прайс`, а не верить подписи.
-- `cost > 0` фильтрует шаги, которые не тарифицировались (ошибки, офлайн):
-  без фильтра средние занижаются.
-- Первый шаг после смены модели или после правки системного префикса дороже
-  обычного — это промах кэша, а не «модель стала дороже».
-- `opencode stats` даёт общую картину (`--all`, `--models`, `--days`), но не
-  разбивку по шагам: для профиля шага нужна база, а не отчёт.
-- Числа в §4 — один аккаунт и один набор инструментов. Свои считать тем же
-  скриптом, а не переносить эти.
+- `cost` in the UI may be labelled `$` while being counted in another currency:
+  the gap against the price card can be tens of times. Compare a step's `cost`
+  with `tokens × price` instead of trusting the label.
+- The `cost > 0` filter drops steps that were not billed (errors, offline):
+  without it the averages come out too low.
+- The first step after a model switch or a prefix edit is dearer than usual —
+  that is a cache miss, not "the model got more expensive".
+- `opencode stats` gives the big picture (`--all`, `--models`, `--days`) but no
+  per-step breakdown: for the step profile you need the db, not the report.
+- The numbers in §4 are one account and one tool set. Compute yours with the same
+  script; do not carry these over.

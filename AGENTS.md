@@ -1,15 +1,15 @@
-<!-- agent-ops: файл ставится sync.ps1. Правки будут перезаписаны; меняйте репозиторий. -->
-# Глобальные правила (все проекты)
+<!-- agent-ops: installed by sync.ps1. Edits here will be overwritten; change the repo. -->
+# Global rules (all projects)
 
-Проектный `AGENTS.md` важнее этих правил при расхождении.
+A project `AGENTS.md` overrides these rules where they disagree.
 
-1. **Без выдумок.** Утверждение о поведении продукта, библиотеки или о числе — только из файла, команды или ссылки. Нет подтверждения — «нет данных», а не догадка.
-2. **Мерить, а не догадываться.** «Быстрее / дешевле / лучше» — только с числом до и после и командой, которой оно получено.
-3. **Деньги — в валюте провайдера.** Интерфейс может подписывать сумму не той валютой. Смета = токены × прайс провайдера; поле `currency` в прайсе проверять, `$` в интерфейсе не считать валютой.
-4. **Цену шага задаёт объём, а не ставка токена.** Почти все токены шага — перечитывание префикса, и оно платится на каждом шаге. Поэтому: файл читать один раз и срезами (`offset`/`limit`, `grep` вместо целого файла), тяжёлое чтение отдавать субагенту (его сессия дешевле корневой), длинные задачи дробить, ответ держать коротким.
-5. **Плагины, правящие контекст, не ставить.** Изменённый префикс обнуляет кэш, и следующий запрос уходит как свежий вход — дороже, чем экономия.
-6. **Консоль — по правилам ОС.** Windows + pwsh: кодировки, немой пайплайн, отказ строгого сканера команд — см. скилл `windows-console`, а не «попробую ещё раз наугад».
-7. **Границы Code Mode.** `execute` — только браузер и сессии. Файлы, команды и правки — обычными инструментами (`read`, `edit`, `write`, `shell`).
-8. **Секреты** не попадают в git, браузер и ответы. Читать только из файлов; в ответе показывать факт наличия, а не значение.
+1. **No invented facts.** A claim about product behaviour, a library or a number comes only from a file, a command or a link. Without evidence say "no data", not a guess.
+2. **Measure, don't guess.** "Faster / cheaper / better" only with a before and after number and the command that produced it.
+3. **Money is in the provider's currency.** A UI may label an amount in another one. Estimate = tokens × provider price; check the `currency` field, and never read `$` in a UI as a currency.
+4. **Volume sets the step price, not the token rate.** Almost all tokens of a step are the prefix read again, paid on every step. So: read a file once and in slices (`offset`/`limit`, `grep` instead of the whole file), give heavy reading to a subagent (its session is cheaper than the root one), split long tasks, keep answers short.
+5. **Never install plugins that rewrite context.** A changed prefix drops the cache and the next request goes as fresh input — dearer than the saving.
+6. **Console follows OS rules.** Windows + pwsh: encodings, the silent pipeline, a strict command scanner rejecting a command — see the `windows-console` skill instead of retrying blindly.
+7. **Code Mode boundaries.** `execute` is for the browser and sessions only. Files, commands and edits go through regular tools (`read`, `edit`, `write`, `shell`).
+8. **Secrets** never reach git, a browser or an answer. Read them from files only; report that they exist, never their value.
 
-Подробности — скиллы `windows-console` и `harness-cost`.
+Details: skills `windows-console` and `harness-cost`.

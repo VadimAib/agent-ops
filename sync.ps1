@@ -1,22 +1,22 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Разворачивает agent-ops в глобальный конфиг OpenCode и сверяет установку.
+    Installs agent-ops into the global OpenCode config and verifies the install.
 
 .DESCRIPTION
-    Копирует AGENTS.md и skills\<имя>\SKILL.md в каталог глобального конфига.
-    AGENTS.md с чужим содержимым (без маркера agent-ops) не перезаписывается:
-    рядом кладётся AGENTS.agent-ops.md и печатается предупреждение.
+    Copies AGENTS.md and skills\<name>\SKILL.md into the global config directory.
+    An AGENTS.md that is not ours (no agent-ops marker) is never overwritten:
+    ours is placed next to it as AGENTS.agent-ops.md and reported.
 
 .PARAMETER Check
-    Ничего не менять. Код 0 — установка совпадает с репозиторием, код 1 —
-    есть расхождение или отсутствующий файл.
+    Change nothing. Exit 0 when the install matches the repo, exit 1 when there
+    is a difference or a missing file.
 
 .PARAMETER Target
-    Каталог конфига. По умолчанию %USERPROFILE%\.config\opencode.
+    Config directory. Defaults to %USERPROFILE%\.config\opencode.
 
 .PARAMETER Force
-    Перезаписать AGENTS.md, даже если маркера в нём нет.
+    Overwrite AGENTS.md even when it has no marker.
 
 .EXAMPLE
     .\sync.ps1
@@ -34,12 +34,12 @@ $ErrorActionPreference = 'Stop'
 $repo = $PSScriptRoot
 $fail = 0
 
-# Кодовая страница консоли без кириллицы (437, 1252) печатает «????»:
-# Write-Host кодирует через кодировку хоста, и изнутри сессии её не сменить.
-# В таком случае (и при перенаправленном выводе) пишем в stdout напрямую UTF-8.
+# A console code page without the needed glyphs (437, 1252) prints "????":
+# Write-Host encodes through the host code page and it cannot be changed from
+# inside a session. Then (and when output is redirected) write to stdout as UTF-8.
 $script:rawOut = $true
 try {
-    if (([Console]::OutputEncoding.GetBytes('Я') -join ',') -ne '63') { $script:rawOut = $false }
+    if (([Console]::OutputEncoding.GetBytes('日') -join ',') -ne '63') { $script:rawOut = $false }
     if ([Console]::IsOutputRedirected) {
         [Console]::OutputEncoding = [Text.Encoding]::UTF8
         $script:rawOut = $true
@@ -70,26 +70,26 @@ function Test-SameFile {
     return $true
 }
 
-# --- проверка самого набора: правила должны остаться правилами ---------------
+# --- the set checks itself: the rules must stay rules ------------------------
 $agentsSrc = Join-Path $repo 'AGENTS.md'
 if (-not (Test-Path -LiteralPath $agentsSrc)) {
-    Say "FAIL  нет $agentsSrc" 'Red'
+    Say "FAIL  missing $agentsSrc" 'Red'
     exit 1
 }
 $agentsText = [IO.File]::ReadAllText($agentsSrc)
 $chars = $agentsText.Length
 $points = ([regex]::Matches($agentsText, '(?m)^\d+\. ')).Count
-Say ("AGENTS.md: {0} знаков, {1} пунктов" -f $chars, $points)
+Say ("AGENTS.md: {0} chars, {1} points" -f $chars, $points)
 if ($chars -gt 2000) {
-    Say 'FAIL  AGENTS.md длиннее 2 000 знаков' 'Red'
+    Say 'FAIL  AGENTS.md is longer than 2000 characters' 'Red'
     $fail = 1
 }
 if ($points -lt 6 -or $points -gt 10) {
-    Say 'FAIL  в AGENTS.md должно быть 6-10 пунктов' 'Red'
+    Say 'FAIL  AGENTS.md must have 6-10 points' 'Red'
     $fail = 1
 }
 
-# --- что и куда -------------------------------------------------------------
+# --- what goes where --------------------------------------------------------
 $items = @([pscustomobject]@{
         Rel   = 'AGENTS.md'
         Src   = $agentsSrc
@@ -109,7 +109,7 @@ if (Test-Path -LiteralPath $skillsDir) {
 }
 
 if ($Check) {
-    Say ("Сверка с {0}" -f $Target)
+    Say ("Checking against {0}" -f $Target)
     foreach ($it in $items) {
         if (Test-SameFile $it.Src $it.Dst) {
             Say ("OK      {0}" -f $it.Rel) 'Green'
@@ -119,16 +119,16 @@ if ($Check) {
             $fail = 1
         }
     }
-    if ($fail -eq 0) { Say 'Установка совпадает с репозиторием.' 'Green' }
-    else { Say 'Есть расхождения: запустите sync.ps1 без -Check.' 'Yellow' }
+    if ($fail -eq 0) { Say 'Install matches the repo.' 'Green' }
+    else { Say 'Differences found: run sync.ps1 without -Check.' 'Yellow' }
     exit $fail
 }
 
-# --- установка --------------------------------------------------------------
-Say ("Установка в {0}" -f $Target)
+# --- install ----------------------------------------------------------------
+Say ("Installing into {0}" -f $Target)
 foreach ($it in $items) {
     if (-not (Test-Path -LiteralPath $it.Src)) {
-        Say ("FAIL  нет {0}" -f $it.Rel) 'Red'
+        Say ("FAIL  missing {0}" -f $it.Rel) 'Red'
         $fail = 1
         continue
     }
@@ -143,15 +143,15 @@ foreach ($it in $items) {
         if ($head -notmatch '(?i)agent[- ]?op') {
             $alt = Join-Path $dstDir 'AGENTS.agent-ops.md'
             Copy-Item -LiteralPath $it.Src -Destination $alt -Force
-            Say ("ЕСТЬ    {0} не от agent-ops — не тронут; наш вариант: AGENTS.agent-ops.md" -f $it.Rel) 'Yellow'
+            Say ("EXISTS  {0} is not from agent-ops — left untouched; ours: AGENTS.agent-ops.md" -f $it.Rel) 'Yellow'
             $fail = 1
             continue
         }
     }
 
     Copy-Item -LiteralPath $it.Src -Destination $it.Dst -Force
-    Say ("СТАВЛЮ  {0}" -f $it.Rel) 'Green'
+    Say ("WRITE   {0}" -f $it.Rel) 'Green'
 }
 
-Say 'Готово. Проверка: .\sync.ps1 -Check'
+Say 'Done. Verify: .\sync.ps1 -Check'
 exit $fail
