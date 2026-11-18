@@ -78,7 +78,7 @@ for name, lo, hi in [("1-9", 1, 10), ("10-29", 10, 30), ("30-59", 30, 60),
     cnt = sum(1 for v in sess.values() if lo <= len(v) < hi)
     print(f"length {name}: sessions {cnt}, cache/step "
           f"{round(sum(x[0] for x in sel) / len(sel)) if sel else '-'}")
-    # this line mixes root and child sessions - see §4 and scripts/verify.py
+    # this line mixes root and child sessions - split them, see §4
 
 cost = dict(c.execute("select id, coalesce(cost, 0) from session_v2"))
 parent = dict(c.execute("select id, parent_id from session_v2"))
@@ -99,17 +99,50 @@ for label, sel in [("root", [s for s in billed if parent[s] is None]),
           "| per-session cost:", round(sum(cost[s] for s in sel) / len(sel), 3))
 ```
 
-Ready-made versions, with the same definitions, are in `scripts/` next to this
-file. All are read-only, honour `OPENCODE_DB`, and take a directory prefix as the
-first argument (default: the current directory):
+The snippet above is the canonical method — one definition of a step (billed
+assistant messages, `cost > 0`), one connection (`mode=ro`), one place to change
+`OPENCODE_DB`. Add `where directory like ?` to narrow it to one project. Three
+short follow-ups, same connection and same definition:
 
-| Script | What it prints |
-|---|---|
-| `verify.py [dir]` | population split (paid versus `cost = 0`), per-step by length for root and child separately, the cost share of the longest sessions, tool histogram, failures by status and by error text |
-| `sess.py --prefix <title>` | one session: steps, fresh/cache/output, elapsed wall time, tool counts, output characters; `--tools` dumps every call with its command |
-| `waste.py [dir]` | tool histogram, failed calls, biggest tool outputs |
-| `editdiag.py [dir]` | failed `edit` calls by cause, the files that fail most, read-output sizes |
-| `editcause.py [dir]` | the same failures against the files on disk: exact match, after LF normalisation, after whitespace collapse |
+```python
+import collections
+
+# a) which tool fails, and how often (status, not error text)
+tot, bad = collections.Counter(), collections.Counter()
+for (d,) in c.execute("select data from session_message where type='assistant'"):
+    for p in json.loads(d).get("content") or []:
+        if p.get("type") != "tool":
+            continue
+        tot[p["name"]] += 1
+        if (p.get("state") or {}).get("status") == "error":
+            bad[p["name"]] += 1
+print(dict(tot.most_common(10)), "| failed:", dict(bad))
+
+# b) one session by title prefix: length, price, tokens per step
+for sid, title, cost in c.execute(
+        "select id, title, cost from session_v2 where title like ? order by cost desc",
+        ("TITLE PREFIX%",)):
+    ms = [json.loads(d) for (d,) in c.execute(
+        "select data from session_message where session_id=? and type='assistant'", (sid,))]
+    billed = [m for m in ms if (m.get("cost") or 0) > 0]
+    print(title[:60], "| steps", len(billed), "| cost", round(cost, 2))
+
+# c) the tool outputs that eat the prefix, largest first
+big = []
+for (d,) in c.execute("select data from session_message where type='assistant'"):
+    for p in json.loads(d).get("content") or []:
+        if p.get("type") == "tool":
+            st = p.get("state") or {}
+            big.append((sum(len(ch.get("text") or "") for ch in st.get("content") or []),
+                        p["name"]))
+big.sort(reverse=True)
+print(big[:8])
+```
+
+A failed `edit` ("Could not find oldString") leaves a clean trail: take the
+failing call's `oldString`, look at the file on disk, and compare it exact, after
+LF normalisation, after whitespace collapse — the class says whether the anchor
+was wrong or the file had changed.
 
 ## 3. The formula
 
@@ -148,7 +181,7 @@ output price is invisible in the bill, shaving the context length is not.
 Cache per step by session length — and the trap in this table. A session with
 `parent_id` is a subagent session: a different prompt, a different tool set. The
 short buckets are almost all children, so a plain length table compares two kinds
-of session. Split them (`scripts/verify.py`, section 2; snapshot 2026-11-18):
+of session. Split them first (§2 query; snapshot 2026-11-18):
 
 | Steps | Root sessions | Root cache/step | Root cost/step | Child sessions | Child cache/step |
 |---|---|---|---|---|---|
@@ -214,7 +247,7 @@ against 107,134 for a root step (−29%), but children cluster in the 10–59 ra
 where cache/step is low by itself: within 30–59 a child reads 81,132 and the single
 root session 68,741. So the gap is composition, not a rate. What a subagent
 certainly avoids is carrying bulky material in the parent's history; measure your
-own split with `scripts/verify.py` before quoting a factor.
+own split with the §2 query before quoting a factor.
 
 ## 5. Levers and their ceilings
 
