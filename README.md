@@ -30,59 +30,73 @@ restate them: a duplicate is paid for on every step and does not act.
 The triage behind rule 10 - which set to run and what it costs - lives in the
 `review-team` skill rather than here. That skill is a third-party collection of
 reviewer prompts installed separately under `~/.agents/skills/`, and its licence
-is not known, so its files are not vendored into this repository. The measured
-prices came from one account on 2026-11-18: one reviewer ₽4-18, one fleet
-₽42-152, and fifteen fleets were 20% of everything that account had spent.
+is not known, so its files are not vendored into this repository.
+
+A reviewer costs about one to two agent steps: it re-reads the whole diff, so the
+price follows the size of the diff. Derive the amount from the provider's own price
+list (skill `harness-cost`). The ruble figures below are one account on 2026-11-18 -
+one reviewer ₽4-18, one fleet ₽42-152, fifteen fleets being 20% of everything that
+account had spent - and another provider will give different numbers.
 
 The settled set, so the decision survives a machine without that skill:
 
 | Change | Run | Price |
 |---|---|---|
-| Docs only, one file, revertible | gates and tests only | ~0 |
+| Media or documentation only, revertible | gates and tests only | ~0 |
 | Cosmetic or UI change in one file, checked by eye | 1, product/UX | ₽4-6 |
-| Code in one module, tests exist | 2-3 by risk (correctness, tests) | ₽5-15 |
-| Shared surfaces: API contract, permissions, storage, settings schema, migrations | 3-5 (correctness, security, api-compatibility, testing) | ₽30-60 |
-| Milestone: release, acceptance, "stage closed" | the full set, iterate | ₽60-150 |
+| Code in one module, tests exist | 2-3 by risk (correctness, tests) | ₽8-24 |
+| Shared surfaces: API contract, permissions, storage, settings schema, migrations, infra | 3-5 (correctness, security, api-compatibility, testing) | ₽24-60 |
+| Milestone: release, acceptance, "stage closed" | the full set, iterate | ₽42-152 |
 
 Never launch on an unchanged diff, on unaddressed findings of the previous run, or
 on an area already reviewed under another name.
 
 ### Closing message: one question, with a price
 
-The surface is read from paths, not guessed from the size of the diff, so the same
-change always gets the same answer. First match wins:
+The surface is read from paths, not guessed from the diff size, so the same change
+always gets the same answer. Changed files come from `git diff HEAD --name-only`
+plus the untracked ones; on another VCS, or with none, use the project's own means -
+never skip the step, and never read a missing list as "no changes".
 
-| Surface | Paths | Set | Price |
+Precedence decides more than the pattern list: media, then documentation, then
+contract semantics, then UI, then code, then anything else.
+
+| Surface | Matched by | Set | Price |
 |---|---|---|---|
-| shared | `settings*.json`, `da_settings.py`, `*acl*`, `*permission*`, `*migration*`, `*storage*`, `cf_llm_gateway.py`, `api*.py`, `install.sh` | 3-5 | ₽24-60 |
-| look | `*.js`, `*.css`, `*.html`, `*/static/*` | 1 | ₽4-6 |
-| code | `*.py`, `*.ts`, `*.tsx`, `*.go`, `*.rs`, `*.java`, `*.sh` | 2-3 | ₽8-24 |
-| docs | `*.md`, `*/bench/*`, `*.txt` | none | ₽0 |
-| unknown | anything else | 2-3, surface named as unknown | ₽8-24 |
+| media, docs | `*.png *.jpg *.svg *.ico *.woff* *.pdf` / `*.md *.txt *.rst *.adoc */bench/*` | none | ₽0 |
+| shared | a contract word: `config settings schema migrat* acl permission* roles auth secur* storage polic* secret* api gateway`; a declarative file: `*.yml *.yaml *.toml *.ini .env* Dockerfile* docker-compose* *deploy*`; a dependency manifest: `package.json *-lock.json *lock* requirements*.txt Gemfile* go.mod pom.xml composer.json`; `install.sh`, `uninstall.sh` | 3-5 | ₽24-60 |
+| look | `*.js *.jsx *.css *.less *.scss *.html *.vue *.svelte */static/* *template*` | 1 | ₽4-6 |
+| code | `*.py *.ts *.tsx *.go *.rs *.java *.rb *.php *.cs *.kt *.swift *.c *.cpp *.h *.sh *.ps1` | 2-3 | ₽8-24 |
+| unknown | anything else | 2-3, named as unknown | ₽8-24 |
+
+A contract word has to stand as a word, not as a substring: `capitalize.js` is not an
+API, `author.ts` is not auth. Manifests are checked before documentation, otherwise
+`requirements.txt` counts as a text file and gets no review at all.
 
 Several at once: shared, then unknown, then code, then look, then docs. A milestone
-overrides everything. Unknown never maps to zero - a path map is a guess about
-risk, and guessing low is the expensive mistake.
+overrides everything. Two rules there are deliberate: a document or a picture is
+never reviewed however it is named, and an unknown path never maps to zero - the map
+is a guess about risk, and guessing low is the expensive mistake.
 
-Then in the closing message of the turn that changed files: docs only - one
-passive line, no question and no price; otherwise exactly one question naming
+The sets name roles, not files: map them to whatever reviewer prompts exist in this
+environment, take the closest ones when the fleet is smaller, and when there are
+none, read the diff against those roles yourself. The rule and the skill are
+English; the closing message goes to the user in the user's own language.
+
+Then in the closing message of the turn that changed files: media or docs only -
+one passive line, no question and no price; otherwise exactly one question naming
 surface, set, reviewers and price; never launch without an explicit yes; same diff
 hash as the last review or its findings still open - say so and propose nothing.
 "Are you done?" followed by "shall I launch?" is one question too many: the launch
 approval already answers it.
 
-Measured 2026-11-18 (six end-of-task cases, three agents, ₽0.61): with the closing
-protocol no agent spent without approval, and after the rule wording was fixed
-(two runs, 4/4 each) every case got the expected set. With the triage table alone
-four of six turns launched reviewers and reported afterwards - the habit that had
-cost 20% of an account.
+Measured 2026-11-18, five agents, two tests, ₽1.41 in total.
 
-Measured 2026-11-18 (four agents, six cases, ₽0.80): with this table both runs
-stayed within 22% of the expected spend; without it the two identical runs landed
-at +11% and +44%, one of them spending a full fleet on a settings-schema key. The
-table buys a ceiling and a repeatable answer, not accuracy - and it was the test
-that showed the cosmetic row was missing, so the change had been getting 2-3
-reviewers where 1 was enough.
+| Test | Result |
+|---|---|
+| Triage table, 4 agents, 6 cases, ₽0.80 | with the table both runs stayed within 22% of the expected spend; without it two identical runs landed at +11% and +44%, one spending a full fleet on a settings key |
+| Closing protocol, 5 agents, 6 cases, ₽0.61 | no agent spent without approval, while with the triage table alone four of six turns launched reviewers and reported afterwards. Two defects surfaced: rule 10 contradicted its own table ("the full fleet for milestones and shared surfaces"), and the map had no cosmetic row; after the fix two fresh runs answered 4 of 4 each |
+| Path map, 18 foreign paths | before the rewrite 14 of 18 risky files were under-classified (`config.py` and `src/settings.ts` as code, `Dockerfile` and `prisma/schema.prisma` as unknown) and a picture got 3 reviewers; after it none are under-classified and a picture gets none |
 
 ## Skills
 
