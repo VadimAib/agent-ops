@@ -47,6 +47,8 @@ import sqlite3, json, os
 
 db = os.environ.get("OPENCODE_DB") or os.path.expandvars(
     r"%USERPROFILE%\.local\share\opencode\opencode.db")
+if db.startswith("%"):  # not Windows: expandvars leaves it untouched
+    db = os.path.expanduser("~/.local/share/opencode/opencode.db")
 c = sqlite3.connect("file:" + db.replace("\\", "/") + "?mode=ro", uri=True)
 
 sess = {sid: [] for (sid,) in c.execute("select id from session_v2")}
