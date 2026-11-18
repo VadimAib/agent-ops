@@ -20,9 +20,11 @@ Each figure comes with the command that produced it.
 Windows path: `%USERPROFILE%\.local\share\opencode\opencode.db`.
 Open it **read-only**: `file:<path>?mode=ro`, or you risk disturbing a live db.
 
-`currency` is not a sibling of `pricing`: in the catalogue used for this
-measurement it is a field of `top_provider.pricing` (2026-11-18, `"currency":
-"RUB"`). Read it from there before converting any number into money.
+`currency` is not a sibling of `pricing`: it is a field **inside**
+`top_provider.pricing`, next to `prompt_per_million`, `completion_per_million`
+and `input_cache_read_per_million` (checked 2026-11-18 against
+`https://<base>/api/v1/models`: `"currency": "RUB"`). Read it from there before
+converting any number into money.
 
 Columns that are easy to get wrong:
 
