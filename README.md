@@ -22,7 +22,7 @@ Ten rules, each one paid for by a mistake or a measured cost:
 | 7. One tool per job | edit files with the editor, run commands in the shell, work on pages in the browser; a sandbox stand-in drifts from the real workspace |
 | 8. Secrets never reach output | no key or password in an answer, a commit or a page: read it from a file and report that it exists |
 | 9. A bad call costs a step | `path` and the exact anchor come from the last `read`/`grep` of that file, not from memory; `oldString` = `newString` changes nothing; do not re-read a file only to edit it |
-| 10. Review by risk, not by habit | a reviewer fleet is for milestones and shared surfaces (API contract, permissions, storage, settings schema); an ordinary change gets two or three reviewers picked by risk; an unchanged diff is never re-reviewed |
+| 10. Review by risk, not by habit | a milestone gets the full fleet; shared surfaces (API contract, permissions, storage, settings schema) get three to five by risk; ordinary code two or three; a cosmetic change one; an unchanged diff is never re-reviewed |
 
 A project `AGENTS.md` overrides these rules where they disagree, and should not
 restate them: a duplicate is paid for on every step and does not act.
@@ -46,6 +46,36 @@ The settled set, so the decision survives a machine without that skill:
 
 Never launch on an unchanged diff, on unaddressed findings of the previous run, or
 on an area already reviewed under another name.
+
+### Closing message: one question, with a price
+
+The surface is read from paths, not guessed from the size of the diff, so the same
+change always gets the same answer. First match wins:
+
+| Surface | Paths | Set | Price |
+|---|---|---|---|
+| shared | `settings*.json`, `da_settings.py`, `*acl*`, `*permission*`, `*migration*`, `*storage*`, `cf_llm_gateway.py`, `api*.py`, `install.sh` | 3-5 | ₽24-60 |
+| look | `*.js`, `*.css`, `*.html`, `*/static/*` | 1 | ₽4-6 |
+| code | `*.py`, `*.ts`, `*.tsx`, `*.go`, `*.rs`, `*.java`, `*.sh` | 2-3 | ₽8-24 |
+| docs | `*.md`, `*/bench/*`, `*.txt` | none | ₽0 |
+| unknown | anything else | 2-3, surface named as unknown | ₽8-24 |
+
+Several at once: shared, then unknown, then code, then look, then docs. A milestone
+overrides everything. Unknown never maps to zero - a path map is a guess about
+risk, and guessing low is the expensive mistake.
+
+Then in the closing message of the turn that changed files: docs only - one
+passive line, no question and no price; otherwise exactly one question naming
+surface, set, reviewers and price; never launch without an explicit yes; same diff
+hash as the last review or its findings still open - say so and propose nothing.
+"Are you done?" followed by "shall I launch?" is one question too many: the launch
+approval already answers it.
+
+Measured 2026-11-18 (six end-of-task cases, three agents, ₽0.61): with the closing
+protocol no agent spent without approval, and after the rule wording was fixed
+(two runs, 4/4 each) every case got the expected set. With the triage table alone
+four of six turns launched reviewers and reported afterwards - the habit that had
+cost 20% of an account.
 
 Measured 2026-11-18 (four agents, six cases, ₽0.80): with this table both runs
 stayed within 22% of the expected spend; without it the two identical runs landed
