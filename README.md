@@ -7,6 +7,7 @@ measure instead of guessing, keep the context cheap.
 AGENTS.md                         8 rules
 skills/harness-cost/SKILL.md      measuring and cutting agent cost
 skills/windows-console/SKILL.md   Windows and pwsh commands without losing output
+skills/windows-autostart/SKILL.md Windows autostart and background processes
 ```
 
 ## Install
