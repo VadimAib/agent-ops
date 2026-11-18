@@ -5,8 +5,10 @@
 
 .DESCRIPTION
     Copies AGENTS.md and skills\<name>\SKILL.md into the global config directory.
-    An AGENTS.md that is not ours (no agent-ops marker) is never overwritten:
-    ours is placed next to it as AGENTS.agent-ops.md and reported.
+    A target AGENTS.md that is not ours (first line differs from the marker) is
+    never overwritten unless -Force is given; ours is placed next to it as
+    AGENTS.agent-ops.md, and the run says that the rules are NOT active.
+    Any AGENTS.md about to be replaced is first copied to AGENTS.md.bak.
 
 .PARAMETER Check
     Change nothing. Exit 0 when the install matches the repo, exit 1 when there
@@ -16,23 +18,25 @@
     Config directory. Defaults to %USERPROFILE%\.config\opencode.
 
 .PARAMETER Force
-    Overwrite AGENTS.md even when it has no marker.
+    Overwrite a foreign AGENTS.md as well (a backup is still made).
 
 .EXAMPLE
     .\sync.ps1
     .\sync.ps1 -Check
     .\sync.ps1 -Check -Target (Join-Path $env:TEMP 'cfg-test')
 #>
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding = $false)]
 param(
     [switch]$Check,
     [string]$Target = (Join-Path $env:USERPROFILE '.config\opencode'),
-    [switch]$Force
+    [switch]$Force,
+    [Parameter(ValueFromRemainingArguments = $true)][string[]]$Rest
 )
 
 $ErrorActionPreference = 'Stop'
 $repo = $PSScriptRoot
 $fail = 0
+$marker = '<!-- agent-ops: installed by sync.ps1 and sync.sh. Edits here will be overwritten; change the repo. -->'
 
 # A console code page without the needed glyphs (437, 1252) prints "????":
 # Write-Host encodes through the host code page and it cannot be changed from
@@ -54,6 +58,11 @@ function Say {
     )
     if ($script:rawOut) { [Console]::Out.WriteLine($Object) }
     else { Write-Host $Object -ForegroundColor $ForegroundColor }
+}
+
+if ($Rest -and $Rest.Count -gt 0) {
+    Say ("unknown argument: {0}" -f ($Rest -join ' ')) 'Red'
+    exit 2
 }
 
 function Test-SameFile {
@@ -86,6 +95,10 @@ if ($chars -gt 2000) {
 }
 if ($points -lt 6 -or $points -gt 10) {
     Say 'FAIL  AGENTS.md must have 6-10 points' 'Red'
+    $fail = 1
+}
+if ($agentsText.Split("`n")[0].Trim() -ne $marker) {
+    Say 'FAIL  first line of AGENTS.md is not the marker line' 'Red'
     $fail = 1
 }
 
@@ -126,6 +139,7 @@ if ($Check) {
 
 # --- install ----------------------------------------------------------------
 Say ("Installing into {0}" -f $Target)
+$enabled = $false
 foreach ($it in $items) {
     if (-not (Test-Path -LiteralPath $it.Src)) {
         Say ("FAIL  missing {0}" -f $it.Rel) 'Red'
@@ -137,21 +151,43 @@ foreach ($it in $items) {
         New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
     }
 
-    if ($it.Guard -and (Test-Path -LiteralPath $it.Dst) -and -not $Force) {
+    $exists = Test-Path -LiteralPath $it.Dst
+    if ($it.Guard -and $exists) {
         $old = [IO.File]::ReadAllText($it.Dst)
-        $head = $old.Substring(0, [Math]::Min(200, $old.Length))
-        if ($head -notmatch '(?i)agent[- ]?op') {
-            $alt = Join-Path $dstDir 'AGENTS.agent-ops.md'
-            Copy-Item -LiteralPath $it.Src -Destination $alt -Force
-            Say ("EXISTS  {0} is not from agent-ops — left untouched; ours: AGENTS.agent-ops.md" -f $it.Rel) 'Yellow'
-            $fail = 1
-            continue
+        $first = (($old -split "\r?\n", 2)[0]).Trim()
+        if ($first -ne $marker) {
+            if (-not $Force) {
+                Copy-Item -LiteralPath $it.Src -Destination (Join-Path $dstDir 'AGENTS.agent-ops.md') -Force
+                Say 'EXISTS  AGENTS.md is not from agent-ops — rules NOT active; merge by hand or rerun with -Force' 'Yellow'
+                Say '        (our copy, inert until merged: AGENTS.agent-ops.md)' 'Yellow'
+                $fail = 1
+                continue
+            }
+            Copy-Item -LiteralPath $it.Dst -Destination (Join-Path $dstDir 'AGENTS.md.bak') -Force
+            Say 'locally modified -> backup: AGENTS.md.bak' 'Yellow'
+        }
+        elseif (-not (Test-SameFile $it.Src $it.Dst)) {
+            Copy-Item -LiteralPath $it.Dst -Destination (Join-Path $dstDir 'AGENTS.md.bak') -Force
+            Say 'locally modified -> backup: AGENTS.md.bak' 'Yellow'
         }
     }
 
-    Copy-Item -LiteralPath $it.Src -Destination $it.Dst -Force
-    Say ("WRITE   {0}" -f $it.Rel) 'Green'
+    if (Test-SameFile $it.Src $it.Dst) {
+        Say ("OK      {0}" -f $it.Rel) 'Green'
+    }
+    else {
+        Copy-Item -LiteralPath $it.Src -Destination $it.Dst -Force
+        Say ("WRITE   {0}" -f $it.Rel) 'Green'
+    }
+    if ($it.Guard) { $enabled = $true }
 }
 
-Say 'Done. Verify: .\sync.ps1 -Check'
+if ($enabled) {
+    Say 'Done. The rules are active: AGENTS.md in the target directory.' 'Green'
+    Say 'Verify: .\sync.ps1 -Check'
+}
+else {
+    Say 'Incomplete: AGENTS.md was not installed, so the rules are NOT active.' 'Red'
+    Say 'Exit code 1. Merge the rules into AGENTS.md by hand, or rerun with -Force.' 'Red'
+}
 exit $fail
