@@ -1,6 +1,6 @@
 ---
 name: harness-cost
-description: Cost of agent work - where token numbers live, the prefix × steps formula, levers and their ceilings, a before/after protocol.
+description: Cost of agent work in OpenCode - where token numbers live (opencode.db: session_v2, session_message, session_id/seq), the provider price list and the currency hiding behind a "$" label, the prefix × steps formula, cache read versus fresh input, levers and their ceilings, subagent versus root, before/after protocol. Load for "how much does this cost", "why is this session expensive", "which model is cheaper", and before any estimate or quote.
 ---
 
 # harness-cost — the cost of agent work

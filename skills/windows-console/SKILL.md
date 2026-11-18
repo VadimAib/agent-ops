@@ -1,6 +1,6 @@
 ---
 name: windows-console
-description: Windows and pwsh commands without losing output - "????"/UnicodeEncodeError, silent pipelines, rejected commands (invalid-structure), WSL versus Git Bash, quoting.
+description: Windows and pwsh commands without losing output - "????"/UnicodeEncodeError/charmap and PYTHONIOENCODING (cp1252, cp866), silent pipelines and Select-String, `invalid-structure` from the command scanner, WSL versus Git Bash, UTF-16 output of `wsl -l -v`, quoting and spaces, $LASTEXITCODE. Load on any failing or silent command in this shell, for python/pwsh/WSL work, and for "why is the text not found", "why did the command not run".
 ---
 
 # windows-console — commands on Windows without losses

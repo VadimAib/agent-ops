@@ -51,6 +51,15 @@ Never both. Before relying on a number, compare the two files (`Get-FileHash`,
 `diff`, or just file sizes); the same numbers in both places is the only proof
 that the installed set is the one you tested.
 
+## Language: English only
+
+A translation is a second copy of the same text and drifts like any copy - the
+Cyrillic edition of these rules diverged here within days and answered a real
+question with a wrong code page. Measured: the same 8 rules in Cyrillic cost 676
+tokens per step against 373 in English (≈2.7 characters per token against 3.9),
+so the translation is also the expensive option. Universal rules stay here in
+English; project-specific ones stay in the project, in the project's language.
+
 ## Verify: two cheap checks
 
 **1. What the rules cost.** Two directories, one step each, same model:
@@ -90,13 +99,30 @@ Project-specific facts stay in the project; universal ones here. If you must kee
 a copy in a project (so the repository works on a machine without these files),
 keep it short and mark it as a copy.
 
+## Descriptions are the trigger
+
+Only the one-line `description:` of a skill sits in every step; the body loads
+when the model decides it is needed. So the description must carry the words a
+user actually says, including the literal error names:
+
+- 139-character description of `harness-cost` ("cost of agent work, the formula,
+  levers"): a question "how much did my step cost, in local currency" loaded the
+  skill only at step 14, after the model had explored the models cache and the
+  config on its own;
+- 458 characters naming `opencode.db`, the provider price list and the currency
+  behind a `$` label: the same question loads the skill as the first action.
+
+The price of longer descriptions is small: 315 → 907 characters for both skills
+is about +210 tokens per step, i.e. ~1 unit of the local currency buys roughly
+12,000 steps of the longer text - less than one wasted 10-step hunt.
+
 ## What is measured (2026-11-18)
 
 | Fact | Value | How |
 |---|---|---|
 | Rule file price | +373 tokens per step | prefix A/B above, same day |
 | The same rules in Cyrillic | +676 tokens (1,842 characters) | 2.7 characters per token against 3.9 for Latin |
-| Two skill descriptions in every step | 315 characters (139 + 176) as shipped here | `description:` lines of both `SKILL.md` |
+| Two skill descriptions in every step | 907 characters (458 + 449) | `description:` lines of both `SKILL.md`; the long form is deliberate, see "Descriptions are the trigger" |
 | Duplicated rules in a project file | -609 tokens per step, no behaviour change | -1,535 characters, three prompt pairs |
 | Run-to-run prefix noise | up to ~1.4k tokens | 6,273 / 7,657 / 7,667 in one directory back to back |
 | Cost of the whole set per step | ~0.0004 of the local currency unit per 1,000 prefix tokens | see `harness-cost` §3 for the rate card fields |
@@ -112,7 +138,8 @@ produced them, not promises.
   on the failure being immediately visible.
 - Skill triggering is probabilistic: a symptom routinely loads the skill, the
   literal error name sometimes does not. One run per phrasing proves nothing;
-  use three if it matters.
+  use three if it matters. A description written in the user's words fixes most
+  of it (measured above); the rest is model variance.
 
 ## Update and remove
 
