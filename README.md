@@ -1,11 +1,8 @@
 # agent-ops
 
-Global instructions and skills for OpenCode. Clone, copy two things, get the same
-rules and methods - no personal paths, projects or amounts.
-
-Two ideas hold it together: **do not invent facts** ("no data" beats a guess) and
-**measure instead of guessing**. Eight short rules, no vendor names, no project
-specifics - they apply to any repository.
+Global rules and skills for OpenCode, for any project: **no invented facts,
+measure instead of guessing, keep the context cheap**. Eight short rules and two
+skills - no vendor names, no personal paths, projects or amounts.
 
 ```
 AGENTS.md                         8 rules, 1,447 characters
@@ -46,6 +43,7 @@ copied.
 
 ## Notes
 
-Every figure is a dated sample (2026-11-18) with the command that produced it,
-not a promise - re-measure with the script in `skills/harness-cost`. The rule file
-costs 368 extra prefix tokens per step. MIT.
+Both skills are loaded on demand; only their one-line descriptions sit in every
+step. Figures in them are dated samples (2026-11-18) with the command that
+produced them, not promises - re-measure with the script in `skills/harness-cost`.
+The rule file costs 368 extra prefix tokens per step. MIT.
