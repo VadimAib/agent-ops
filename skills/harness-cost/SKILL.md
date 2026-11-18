@@ -296,8 +296,9 @@ old one.
   cache/step moves 10.2× (§4). Never convert tokens to money by one coefficient;
   take the rate card and apply it per component.
 - `cost` in the UI may be labelled `$` while being counted in another currency:
-  the gap against the price card can be tens of times. Compare a step's `cost`
-  with `tokens × price` instead of trusting the label.
+  the gap against the price card can be tens of times — on one account the label
+  read `82.4529` while the price list was in RUB, a factor of 82 (2026-11-18).
+  Compare a step's `cost` with `tokens × price` instead of trusting the label.
 - The `cost > 0` filter drops steps that were not billed (errors, offline):
   without it the averages come out too low.
 - The first step after a model switch or a prefix edit is dearer than usual —

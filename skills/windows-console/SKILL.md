@@ -127,6 +127,14 @@ $code | Out-File -FilePath $p -Encoding utf8
 **Check.** The complex string should produce `invalid-structure`; the same text
 saved to a `.ps1` via `Out-File` should run.
 
+**Typographic dashes break it as well.** An en dash `–` or an em dash `—` anywhere
+on the command line makes the scanner reject the whole line, whatever the program:
+`echo "a — b"` and `git commit -m "test — dash"` both fail before they start
+(verified 2026-11-18). Plain Cyrillic is fine (`git commit -m "проверка
+кириллицы"` exits 0), and guillemets and typographic quotes pass — it is the two
+dashes only. Fix: keep the dash out of the command line; put the text in a file
+and pass the file (`git commit -F msg.txt`, verified with a dash inside the file).
+
 ## 4. `bash` is WSL or Git Bash, and they are different
 
 **Symptom.** A script works for one person and fails for another: wrong `bash`,
@@ -232,6 +240,7 @@ if ($LASTEXITCODE -ne 0) { throw "git status: $LASTEXITCODE" }
 - [ ] Non-ASCII output: `PYTHONIOENCODING`/`OutputEncoding` are set.
 - [ ] Text is searched in a file with explicit `-Encoding`, not through a pipeline.
 - [ ] Complex logic lives in a `.ps1`, not on one line.
+- [ ] No en dash `–` or em dash `—` on the command line: put the text in a file.
 - [ ] `bash` is named explicitly (WSL or Git Bash).
 - [ ] Paths are quoted, `-LiteralPath` where needed.
 - [ ] `$LASTEXITCODE` is checked wherever a native program was called.
