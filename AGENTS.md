@@ -10,5 +10,6 @@ A project `AGENTS.md` overrides these rules where they disagree.
 6. **Read the error before retrying.** Encoding, quoting and pipelines differ between shells and systems; a rejected command is a verdict, not bad luck.
 7. **One tool per job.** Edit files with the editor, run commands in the shell, work on pages in the browser. A sandbox stand-in drifts from the real workspace.
 8. **Secrets never reach output.** No key or password in an answer, a commit or a page: read it from a file and report that it exists.
+9. **A bad call costs a step.** Pass `path` and copy the exact anchor from the last `read`/`grep` of that file instead of retyping it; an `edit` whose `oldString` equals `newString` is a no-op. Do not re-read a file only to edit it: one extra step per edit costs more than the failures it prevents.
 
 Details: skills `windows-console` and `harness-cost`.

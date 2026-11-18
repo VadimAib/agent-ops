@@ -9,7 +9,7 @@ the installed copy, because two copies of the same rules drift silently.
 
 ## Rules — `AGENTS.md`
 
-Eight rules, each one paid for by a mistake:
+Nine rules, each one paid for by a mistake or a measured cost:
 
 | Rule | In one line |
 |---|---|
@@ -21,6 +21,7 @@ Eight rules, each one paid for by a mistake:
 | 6. Read the error before retrying | encoding, quoting and pipelines differ between shells; a rejected command is a verdict, not bad luck |
 | 7. One tool per job | edit files with the editor, run commands in the shell, work on pages in the browser; a sandbox stand-in drifts from the real workspace |
 | 8. Secrets never reach output | no key or password in an answer, a commit or a page: read it from a file and report that it exists |
+| 9. A bad call costs a step | `path` and the exact anchor come from the last `read`/`grep` of that file, not from memory; `oldString` = `newString` changes nothing; do not re-read a file only to edit it |
 
 A project `AGENTS.md` overrides these rules where they disagree, and should not
 restate them: a duplicate is paid for on every step and does not act.
