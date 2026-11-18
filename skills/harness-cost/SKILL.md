@@ -15,7 +15,7 @@ Each figure comes with the command that produced it.
 |---|---|
 | Session spend and tokens | SQLite `opencode.db`, table `session_v2` |
 | Step spend and tokens | same file, `session_message`, `type='assistant'`, JSON in `data` |
-| Provider prices | the provider's model catalog (`<base>/api/v1/models` for OpenAI-compatible ones): `top_provider.pricing`, and `currency` sits **inside** `pricing` |
+| Provider prices | the provider's model catalog (`<base>/api/v1/models`): `top_provider.pricing` with `prompt_per_million`, `completion_per_million`, `input_cache_read_per_million`, `currency` |
 
 Windows path: `%USERPROFILE%\.local\share\opencode\opencode.db`.
 Open it **read-only**: `file:<path>?mode=ro`, or you risk disturbing a live db.
