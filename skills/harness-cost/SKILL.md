@@ -1,6 +1,6 @@
 ---
 name: harness-cost
-description: How to measure and cut the cost of agent work — where the numbers live (OpenCode SQLite db), SQL recipes for the per-step profile, the "prefix × steps" formula, levers with their ceilings, why context-compression plugins lose money, and a before/after measurement protocol. Load it for "how much does this cost", "how do I save", "why is this session expensive", "which model is cheaper", and before any estimate.
+description: Cost of agent work - where token numbers live, the prefix × steps formula, levers and their ceilings, a before/after protocol.
 ---
 
 # harness-cost — the cost of agent work
