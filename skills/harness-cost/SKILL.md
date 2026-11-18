@@ -50,6 +50,7 @@ db = os.environ.get("OPENCODE_DB") or os.path.expandvars(
 c = sqlite3.connect("file:" + db.replace("\\", "/") + "?mode=ro", uri=True)
 
 sess = {sid: [] for (sid,) in c.execute("select id from session_v2")}
+reas = 0
 for sid, data in c.execute("select session_id, data from session_message "
                            "where type='assistant'"):
     if sid not in sess:
@@ -59,6 +60,7 @@ for sid, data in c.execute("select session_id, data from session_message "
     if (m.get("cost") or 0) > 0:                       # billed steps only
         sess[sid].append(((t.get("cache") or {}).get("read") or 0,
                           t.get("input") or 0, t.get("output") or 0))
+        reas += t.get("reasoning") or 0
 
 rows = [x for v in sess.values() for x in v]
 n = len(rows)
@@ -67,8 +69,8 @@ inp = sum(r[1] for r in rows)
 out = sum(r[2] for r in rows)
 print("billed steps:", n)
 print("cache/step:", round(cache / n), "| fresh input/step:", round(inp / n),
-      "| output/step:", round(out / n))
-print("cache share, %:", round(100 * cache / (cache + inp + out), 1))
+      "| output/step:", round(out / n), "| reasoning/step:", round(reas / n))
+print("cache share, %:", round(100 * cache / (cache + inp + out + reas), 1))
 
 for name, lo, hi in [("1-9", 1, 10), ("10-29", 10, 30), ("30-59", 30, 60),
                      ("60-119", 60, 120), ("120+", 120, 10 ** 9)]:
@@ -76,6 +78,7 @@ for name, lo, hi in [("1-9", 1, 10), ("10-29", 10, 30), ("30-59", 30, 60),
     cnt = sum(1 for v in sess.values() if lo <= len(v) < hi)
     print(f"length {name}: sessions {cnt}, cache/step "
           f"{round(sum(x[0] for x in sel) / len(sel)) if sel else '-'}")
+    # this line mixes root and child sessions - see §4 and scripts/verify.py
 
 cost = dict(c.execute("select id, coalesce(cost, 0) from session_v2"))
 parent = dict(c.execute("select id, parent_id from session_v2"))
@@ -85,14 +88,28 @@ print("sessions total:", len(sess), "| with billed steps:",
       "| their cost share, %:",
       round(100 * sum(cost[s] for s in long_ids) / sum(cost.values()), 1))
 
-# subagent comparison; filter: sessions that have at least one billed step
+# subagent comparison per step: a child session is short, so "cheaper per
+# session" is a statement about its length, not about the price of a step
 billed = [s for s in sess if sess[s]]
-kids = [s for s in billed if parent[s] is not None]
-roots = [s for s in billed if parent[s] is None]
-avg = lambda xs: sum(cost[s] for s in xs) / len(xs)
-print("child:", len(kids), "| root:", len(roots),
-      "| root/child ratio:", round(avg(roots) / avg(kids), 1))
+for label, sel in [("root", [s for s in billed if parent[s] is None]),
+                   ("child", [s for s in billed if parent[s] is not None])]:
+    st = [x for s in sel for x in sess[s]]
+    print(label, "sessions:", len(sel),
+          "| per-step cache:", round(sum(x[0] for x in st) / len(st)) if st else "-",
+          "| per-session cost:", round(sum(cost[s] for s in sel) / len(sel), 3))
 ```
+
+Ready-made versions, with the same definitions, are in `scripts/` next to this
+file. All are read-only, honour `OPENCODE_DB`, and take a directory prefix as the
+first argument (default: the current directory):
+
+| Script | What it prints |
+|---|---|
+| `verify.py [dir]` | population split (paid versus `cost = 0`), per-step by length for root and child separately, the cost share of the longest sessions, tool histogram, failures by status and by error text |
+| `sess.py --prefix <title>` | one session: steps, fresh/cache/output, elapsed wall time, tool counts, output characters; `--tools` dumps every call with its command |
+| `waste.py [dir]` | tool histogram, failed calls, biggest tool outputs |
+| `editdiag.py [dir]` | failed `edit` calls by cause, the files that fail most, read-output sizes |
+| `editcause.py [dir]` | the same failures against the files on disk: exact match, after LF normalisation, after whitespace collapse |
 
 ## 3. The formula
 
@@ -115,30 +132,48 @@ Snapshot of the db taken when the §2 script was run:
 
 | Metric | Value |
 |---|---|
-| Billed steps | 19,813 |
-| Cache per step | 102,602 tokens |
-| Fresh input per step | 1,395 tokens |
-| Output per step | 296 tokens |
-| **Cache share of step tokens** | **98.4%** |
+| Billed steps | 20,804 |
+| Cache per step | 101,354 tokens |
+| Fresh input per step | 1,407 tokens |
+| Output per step | 295 tokens |
+| Reasoning per step | 274 tokens |
+| **Cache share of step tokens** | **98.1%** |
+
+The db is live: these counts drift while you read them — 20,804 steps here and
+20,851 a few dozen steps later, all from the sessions doing the reading.
 
 So ~98% of a step's tokens are the same prefix read again. Hence: shaving the
 output price is invisible in the bill, shaving the context length is not.
 
-Cache per step by session length (same script). The Sessions column counts only
-sessions that have **billed steps** — 144 of 421 on that date; the other 277
-never produced a billed step, so they are absent both here and in the cost share:
+Cache per step by session length — and the trap in this table. A session with
+`parent_id` is a subagent session: a different prompt, a different tool set. The
+short buckets are almost all children, so a plain length table compares two kinds
+of session. Split them (`scripts/verify.py`, section 2; snapshot 2026-11-18):
 
-| Steps in session | Sessions | Cache per step |
-|---|---|---|
-| 1–9 | 13 | 23,676 |
-| 10–29 | 47 | 60,121 |
-| 30–59 | 41 | 80,760 |
-| 60–119 | 19 | 86,630 |
-| 120+ | 24 | 109,385 |
+| Steps | Root sessions | Root cache/step | Root cost/step | Child sessions | Child cache/step |
+|---|---|---|---|---|---|
+| 1–9 | 91 | 10,380 | 0.074 | 4 | 40,460 |
+| 10–29 | 8 | 39,773 | 0.153 | 48 | 58,727 |
+| 30–59 | 1 | 68,741 | 0.188 | 40 | 81,132 |
+| 60–119 | 2 | 106,114 | 0.100 | 16 | 85,096 |
+| 120–249 | 5 | 98,481 | 0.124 | — | — |
+| 250+ | 22 | 109,640 | 0.126 | — | — |
 
-A long session carries **4.6×** more cache per step than a short one
-(109,385 / 23,676). Of all 421 sessions, 24 with 120+ steps account for
-**77.0%** of all recorded cost (same script, last block).
+Two readings, and they differ:
+
+- Cache per step rises **10.2×** from the 1–9 bucket to 60–119 and then **stops
+  growing**: 106,114 → 98,481 → 109,640. The context hits a ceiling of roughly
+  100–110k tokens and stays there, so a 970-step session carries no more context
+  per step than a 70-step one.
+- Cost per step moves only **1.7×** (0.074 → 0.126) while cache per step moves
+  10.2×: the recorded `cost` is not proportional to token counts, so rank levers by
+  tokens and by steps, and check money against the price card (§1).
+
+So the earlier "a long session carries 4.6× more cache per step than a short one"
+compared a 10–29 bucket that is 48/56 child sessions against a 120+ bucket that is
+all root. Within roots, 120–249 against 250+ differs by 11%. Of the 237 sessions
+with billed steps, 27 have 120+ steps and take **77.0%** of all recorded cost —
+that is a fact about how many steps happened there, not about the price of a step.
 
 Prefix (A/B on one profile, two directories, one step each):
 
@@ -172,19 +207,23 @@ Rules duplicated from the global file into a project file were measured at
 three scenarios (encoding, file edit, cost report). Duplication is paid on every
 step and does not act twice.
 
-Subagent versus root session: 103 child sessions against 41 root ones are on
-average **9.5× cheaper**. Filter, as in the §2 script: only sessions with at
-least one billed step; without it the db also counts sessions that never
-produced a billed step (306 child and 115 root sessions on that date, and the
-ratio stops being comparable).
+Subagent versus root session: the old "9.5× cheaper on average" compares whole
+sessions, and a child session is short by construction — the difference is mostly
+length, not price. Across the whole db a child step reads 76,154 cache tokens
+against 107,134 for a root step (−29%), but children cluster in the 10–59 range,
+where cache/step is low by itself: within 30–59 a child reads 81,132 and the single
+root session 68,741. So the gap is composition, not a rate. What a subagent
+certainly avoids is carrying bulky material in the parent's history; measure your
+own split with `scripts/verify.py` before quoting a factor.
 
 ## 5. Levers and their ceilings
 
 | Lever | Effect | Ceiling / caveat |
 |---|---|---|
-| Split long tasks into sessions | cache/step 109,385 → 60,121 (120+ steps versus 10–29): up to **−45%** per step | will not go below the base prefix (23,676); context is lost, so write a short brief |
-| Heavy reading goes to a subagent | on average **9.5×** cheaper | only if the reading is really bulky; otherwise the brief costs more than it saves |
-| Trim the prefix: instructions, schemas, unused tools | 1,000 prefix tokens × steps × `p_cache` | our whole `AGENTS.md` is ≈370 tokens; trimming rules is pointless, trimming a 50k-char project file is not |
+| Split a long task into sessions | cache/step falls only while a session is **below** the ~110k ceiling; above it the curve is flat (98,481 at 120–249 vs 109,640 at 250+) | in money it does not follow: cost/step is 0.153 at 10–29-step roots against 0.126 at 250+, so short sessions are not cheaper per step. A context-window measure, not a saving |
+| Heavy reading goes to a subagent | the parent's history does not carry the material | per step a child reads 76,154 against 107,134 for a root, but that is mostly composition — children cluster in the 10–59 range; only if the reading is really bulky |
+| Avoid a failed call: one retry is one step | 214 of 3,807 `edit` calls failed in one project = 214 steps = 5.2% of its recorded cost; a third of them were malformed calls, not bad anchors | a rule that prevents them costs 83 tokens/step (two one-step runs: 7,499 → 7,582) and breaks even at 1.3 steps — rule 9 in `AGENTS.md` |
+| Trim the prefix: instructions, schemas, unused tools | 1,000 prefix tokens × steps × `p_cache` | our whole `AGENTS.md` is 451 tokens (A/B in §4: +368, rule 9 measured at +83); trimming rules is pointless, trimming a 50k-char project file is not |
 | Read a file once, in slices, later in the session | 30,000 tokens at step 5 of 50 are paid 45 times, at step 45 only 5 times | needs a session plan, or the read "will be needed later" turns into a re-read |
 | Switch model within the same class | ≈ 0 | cheap models often have a higher `p_cache`; compare `p_cache` |
 | Reasoning effort | changes output and reasoning | output is ~296 of ~104,300 step tokens, reasoning is a fraction of a percent: ceiling well under 1% |
@@ -242,9 +281,20 @@ old one.
    Check `state.metadata.directory` of the `skill` call, or run the control in a
    copy of the project outside its own directory, where the server sees it first
    time.
+9. **Price a rule before adding it.** Two one-step runs in identical directories
+   that differ only in the rule give its tokens per step (measured 83 for the
+   failed-call rule: 7,499 → 7,582). Multiply by the steps it applies to and
+   divide by the tokens one step costs at that length: rule 9 costs 0.13 cost
+   units over 4,109 steps, so it pays for itself at **1.3 prevented steps**. The
+   asymmetry is the point: a rule's own price is ~0.03% of the bill, while one
+   extra step per hundred steps is 1%, which is why a rule that makes the model
+   hesitate loses and a rule that stops a retry wins.
 
 ## 8. Caveats
 
+- `cost` in the db is not linear in the token counts: cost/step moves 1.7× while
+  cache/step moves 10.2× (§4). Never convert tokens to money by one coefficient;
+  take the rate card and apply it per component.
 - `cost` in the UI may be labelled `$` while being counted in another currency:
   the gap against the price card can be tens of times. Compare a step's `cost`
   with `tokens × price` instead of trusting the label.

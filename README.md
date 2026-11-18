@@ -34,9 +34,26 @@ written in the words people actually use, literal error names included. The
 
 | Skill | Body, tokens | What it settles |
 |---|---|---|
-| `harness-cost` | 3,544 | where token and money numbers live (session database), the prefix × steps formula, cache read versus fresh input, levers and their ceilings, the before/after protocol, why compression loses money |
+| `harness-cost` | 4,850 | where token and money numbers live (session database), the prefix × steps formula, cache read versus fresh input, levers and their ceilings, the before/after protocol, why compression loses money; `scripts/` holds five read-only measurement scripts |
 | `windows-console` | 2,763 | `????` / `UnicodeEncodeError` / cp1252 and cp866, silent pipelines and `Select-String`, `invalid-structure` from the command scanner, `bash` as WSL or Git Bash, UTF-16 from `wsl -l -v`, quoting and paths, exit codes |
 | `windows-autostart` | 1,149 | what starts at login (services, `Run`/`RunOnce`, Startup folder, scheduled tasks) and the four different treatments, `StartupApproved` 2/3, what needs UAC, pitfalls: `msrdc` as the WSLg client, any `wsl.exe` starting the distro, `Register-ScheduledTask -Force`, `@($task.Triggers).Count` |
+
+## Rejected, with reasons
+
+Ten ecosystem candidates were measured or read, and dropped. The measured one is
+`opencode-snip` (four A/B pairs, same task, same model): 9,570–9,744 tokens per
+step against a base of 8,723–9,618, and it never rewrote a command. The others
+fail on mechanism, not on taste:
+
+| Candidate | Why not |
+|---|---|
+| DCP (context pruning) | its own README: pruning changes messages, so cached prefixes are invalidated from that point on |
+| handoff (brief + new session) | session length is not the lever: 106,114 cache/step at 60–119 steps against 107,861 at 250+ inside root sessions |
+| skills registry rewrites | since 2.x only the id, name and description of a skill sit in the prompt, so the premise is false |
+| superpowers, memory plugins, shell-strategy | they add schemas or instructions to the prefix of every step; the last one is POSIX-only |
+| Morph fast-apply | output is 248 of ~109,500 tokens per step, so the ceiling is under 1% |
+
+Full numbers and the reproduce commands: `docs/RESEARCH-2026-11-18-OPENCODE2.md`.
 
 ## Proven, not guessed
 
