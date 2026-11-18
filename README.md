@@ -9,7 +9,7 @@ the installed copy, because two copies of the same rules drift silently.
 
 ## Rules — `AGENTS.md`
 
-Nine rules, each one paid for by a mistake or a measured cost:
+Ten rules, each one paid for by a mistake or a measured cost:
 
 | Rule | In one line |
 |---|---|
@@ -22,9 +22,17 @@ Nine rules, each one paid for by a mistake or a measured cost:
 | 7. One tool per job | edit files with the editor, run commands in the shell, work on pages in the browser; a sandbox stand-in drifts from the real workspace |
 | 8. Secrets never reach output | no key or password in an answer, a commit or a page: read it from a file and report that it exists |
 | 9. A bad call costs a step | `path` and the exact anchor come from the last `read`/`grep` of that file, not from memory; `oldString` = `newString` changes nothing; do not re-read a file only to edit it |
+| 10. Review by risk, not by habit | a reviewer fleet is for milestones and shared surfaces (API contract, permissions, storage, settings schema); an ordinary change gets two or three reviewers picked by risk; an unchanged diff is never re-reviewed |
 
 A project `AGENTS.md` overrides these rules where they disagree, and should not
 restate them: a duplicate is paid for on every step and does not act.
+
+The triage behind rule 10 - which set to run and what it costs - lives in the
+`review-team` skill rather than here. That skill is a third-party collection of
+reviewer prompts installed separately under `~/.agents/skills/`, and its licence
+is not known, so its files are not vendored into this repository. The measured
+prices came from one account on 2026-11-18: one reviewer ₽4-18, one fleet
+₽42-152, and fifteen fleets were 20% of everything that account had spent.
 
 ## Skills
 

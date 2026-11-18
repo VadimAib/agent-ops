@@ -11,5 +11,6 @@ A project `AGENTS.md` overrides these rules where they disagree.
 7. **One tool per job.** Edit files with the editor, run commands in the shell, work on pages in the browser. A sandbox stand-in drifts from the real workspace.
 8. **Secrets never reach output.** No key or password in an answer, a commit or a page: read it from a file and report that it exists.
 9. **A bad call costs a step.** Pass `path` and copy the exact anchor from the last `read`/`grep` of that file instead of retyping it; an `edit` whose `oldString` equals `newString` is a no-op. Do not re-read a file only to edit it: one extra step per edit costs more than the failures it prevents.
+10. **Review by risk, not by habit.** A full reviewer fleet is for milestones and shared surfaces (API contract, permissions, storage, settings schema); an ordinary change gets two or three reviewers picked by risk, and an unchanged diff is never re-reviewed. Triage table and measured prices: skill `review-team`.
 
-Details: skills `windows-console` and `harness-cost`.
+Details: skills `windows-console`, `harness-cost`, `review-team`.
