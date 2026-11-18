@@ -151,10 +151,10 @@ Push-Location .\rules; opencode run -m <provider/model> --title prefix-rules "An
 
 | Directory | Step prefix |
 |---|---|
-| empty | 7,345 tokens |
-| with `AGENTS.md`, 1,709 chars (1,714 bytes) | 7,788 tokens |
+| empty | 7,343 tokens |
+| with `AGENTS.md`, 1,551 chars (1,551 bytes) | 7,740 tokens |
 
-The difference is **443 tokens** for the whole rule file. That is cheaper than
+The difference is **397 tokens** for the whole rule file. That is cheaper than
 one extra project file read; instructions get expensive only in the tens of
 thousands of characters.
 
@@ -170,7 +170,7 @@ ratio stops being comparable).
 |---|---|---|
 | Split long tasks into sessions | cache/step 109,385 → 60,121 (120+ steps versus 10–29): up to **−45%** per step | will not go below the base prefix (23,676); context is lost, so write a short brief |
 | Heavy reading goes to a subagent | on average **9.5×** cheaper | only if the reading is really bulky; otherwise the brief costs more than it saves |
-| Trim the prefix: instructions, schemas, unused tools | 1,000 prefix tokens × steps × `p_cache` | our whole `AGENTS.md` is 443 tokens; trimming rules is pointless, trimming a 50k-char project file is not |
+| Trim the prefix: instructions, schemas, unused tools | 1,000 prefix tokens × steps × `p_cache` | our whole `AGENTS.md` is 397 tokens; trimming rules is pointless, trimming a 50k-char project file is not |
 | Read a file once, in slices, later in the session | 30,000 tokens at step 5 of 50 are paid 45 times, at step 45 only 5 times | needs a session plan, or the read "will be needed later" turns into a re-read |
 | Switch model within the same class | ≈ 0 | cheap models often have a higher `p_cache`; compare `p_cache` |
 | Reasoning effort | changes output and reasoning | output is ~296 of ~104,300 step tokens, reasoning is a fraction of a percent: ceiling well under 1% |

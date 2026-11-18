@@ -3,13 +3,13 @@
 
 A project `AGENTS.md` overrides these rules where they disagree.
 
-1. **No invented facts.** A claim about product behaviour, a library or a number comes only from a file, a command or a link. Without evidence say "no data", not a guess.
-2. **Measure, don't guess.** "Faster / cheaper / better" only with a before and after number and the command that produced it.
-3. **Money is in the provider's currency.** A UI may label an amount in another one. Estimate = tokens × provider price; check the `currency` field, and never read `$` in a UI as a currency.
-4. **Volume sets the step price, not the token rate.** Almost all tokens of a step are the prefix read again, paid on every step. So: read a file once and in slices (`offset`/`limit`, `grep` instead of the whole file), give heavy reading to a subagent (its session is cheaper than the root one), split long tasks, keep answers short.
-5. **Never install plugins that rewrite context.** A changed prefix drops the cache and the next request goes as fresh input — dearer than the saving.
-6. **Console follows OS rules.** Windows + pwsh: encodings, the silent pipeline, a strict command scanner rejecting a command — see the `windows-console` skill instead of retrying blindly.
-7. **Code Mode boundaries.** `execute` is for the browser and sessions only. Files, commands and edits go through regular tools (`read`, `edit`, `write`, `shell`).
-8. **Secrets** never reach git, a browser or an answer. Read them from files only; report that they exist, never their value.
+1. **No invented facts.** A claim about behaviour, an API or a number comes from a file, a command or a link. Without evidence say "no data" - a guess is worse than a gap.
+2. **Measure, don't guess.** "Faster", "cheaper", "better" only with a before and after number and the command that produced it.
+3. **Numbers carry units.** Tokens, milliseconds, megabytes, currency: name it. Take an amount from the source's own price list or report, never from a label on a screen.
+4. **Volume sets the bill.** In a long session most tokens are the same context sent again. Read a file once and in slices; hand bulky reading to a subagent; split long tasks; keep answers short.
+5. **Do not rewrite what was already sent.** Tools that compress or edit the conversation drop the prompt cache: the next request is billed in full and costs more than it saves.
+6. **Read the error before retrying.** Encoding, quoting and pipelines differ between shells and systems; a rejected command is a verdict, not bad luck.
+7. **One tool per job.** Edit files with the editor, run commands in the shell, work on pages in the browser. A sandbox stand-in drifts from the real workspace.
+8. **Secrets never reach output.** No key or password in an answer, a commit or a page: read it from a file and report that it exists.
 
 Details: skills `windows-console` and `harness-cost`.

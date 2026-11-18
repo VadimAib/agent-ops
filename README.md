@@ -4,11 +4,11 @@ Global instructions and skills for OpenCode. Clone, run one script, get the same
 rules and methods — no personal paths, projects or amounts.
 
 Two ideas hold it together: **do not invent facts** ("no data" beats a guess) and
-**measure instead of guessing**. Money is counted in the provider's currency,
-because the UI may label it in another one.
+**measure instead of guessing**. Eight short rules, no vendor names, no project
+specifics - they apply to any repository.
 
 ```
-AGENTS.md                         8 rules, 1,709 characters
+AGENTS.md                         8 rules, 1,551 characters
 skills/windows-console/SKILL.md   commands on Windows + pwsh without losses
 skills/harness-cost/SKILL.md      measuring and cutting agent cost
 sync.ps1 / sync.sh                install into the global config, verify (-Check)
@@ -59,7 +59,7 @@ holds your own edits.
 ## Notes
 
 Every figure is a dated sample (2026-11-18) with the command that produced it,
-not a promise — re-measure with the script in `skills/harness-cost`. The rule
-file itself costs 443 extra prefix tokens per step. Windows was tested with
+not a promise - re-measure with the script in `skills/harness-cost`. The rule
+file itself costs 397 extra prefix tokens per step. Windows was tested with
 pwsh 7.6.10 on Windows 10 (19045); `sync.sh` was tested in WSL with bash 5.1.16.
 MIT.
