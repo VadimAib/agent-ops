@@ -158,6 +158,19 @@ The difference is **368 tokens** for the whole rule file. That is cheaper than
 one extra project file read; instructions get expensive only in the tens of
 thousands of characters.
 
+Re-measured 2026-11-18: base 6,273 → 6,646 with the same English file (**+373**,
+the 368 holds within noise). The same rules written in Cyrillic (1,842 chars)
+cost **+676** instead of +373 — about 2.7 characters per token against 3.9 for
+Latin. The absolute base differs between runs by up to ~1.4k tokens because the
+connected MCP tools and their schemas change (6,273 / 7,657 / 7,667 measured in
+one directory back to back), so compare deltas inside one run, never bases across
+dates.
+
+Rules duplicated from the global file into a project file were measured at
+−1,535 chars = **−609 tokens per step** when removed, with no behaviour change in
+three scenarios (encoding, file edit, cost report). Duplication is paid on every
+step and does not act twice.
+
 Subagent versus root session: 103 child sessions against 41 root ones are on
 average **9.5× cheaper**. Filter, as in the §2 script: only sessions with at
 least one billed step; without it the db also counts sessions that never

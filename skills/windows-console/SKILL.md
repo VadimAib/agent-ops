@@ -24,7 +24,8 @@ each section ends with a check command, not a promise.
 'charmap' codec can't encode characters`. The file it writes is fine.
 
 **Cause.** The child process encodes stdout with the console code page
-(usually 1251/866), not UTF-8.
+(usually 1251/866; on Windows 11 with pwsh 7 and python 3.14 it is **1252**, so
+the message reads `'charmap' codec can't encode … cp1252`), not UTF-8.
 
 **Fix.** Set the encoding before starting python, in the same session:
 

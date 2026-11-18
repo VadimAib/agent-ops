@@ -45,5 +45,9 @@ copied.
 
 Both skills are loaded on demand; only their one-line descriptions sit in every
 step. Figures in them are dated samples (2026-11-18) with the command that
-produced them, not promises - re-measure with the script in `skills/harness-cost`.
-The rule file costs 368 extra prefix tokens per step. MIT.
+produced them, not promises - re-measure with the query in
+`skills/harness-cost` §2 (there is no bundled script: the recipes are SQL and
+python snippets inside the skill).
+The rule file costs 373 extra prefix tokens per step (re-measured 2026-11-18;
+the same rules in Cyrillic cost 676 - about 2.7 characters per token against 3.9
+for Latin). MIT.
