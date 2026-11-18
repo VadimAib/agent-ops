@@ -38,27 +38,4 @@ written in the words people actually use, literal error names included. The
 | `windows-console` | 2,763 | `????` / `UnicodeEncodeError` / cp1252 and cp866, silent pipelines and `Select-String`, `invalid-structure` from the command scanner, `bash` as WSL or Git Bash, UTF-16 from `wsl -l -v`, quoting and paths, exit codes |
 | `windows-autostart` | 1,149 | what starts at login (services, `Run`/`RunOnce`, Startup folder, scheduled tasks) and the four different treatments, `StartupApproved` 2/3, what needs UAC, pitfalls: `msrdc` as the WSLg client, any `wsl.exe` starting the distro, `Register-ScheduledTask -Force`, `@($task.Triggers).Count` |
 
-## Rejected, with reasons
-
-Ten ecosystem candidates were measured or read, and dropped. The measured one is
-`opencode-snip` (four A/B pairs, same task, same model): 9,570–9,744 tokens per
-step against a base of 8,723–9,618, and it never rewrote a command. The others
-fail on mechanism, not on taste:
-
-| Candidate | Why not |
-|---|---|
-| DCP (context pruning) | its own README: pruning changes messages, so cached prefixes are invalidated from that point on |
-| handoff (brief + new session) | session length is not the lever: 106,114 cache/step at 60–119 steps against 107,861 at 250+ inside root sessions |
-| skills registry rewrites | since 2.x only the id, name and description of a skill sit in the prompt, so the premise is false |
-| superpowers, memory plugins, shell-strategy | they add schemas or instructions to the prefix of every step; the last one is POSIX-only |
-| Morph fast-apply | output is 248 of ~109,500 tokens per step, so the ceiling is under 1% |
-
-Full numbers and the reproduce commands: `docs/RESEARCH-2026-11-18-OPENCODE2.md`.
-
-## Proven, not guessed
-
-A rule or a skill ships only when a project without it produces a wrong answer or
-an extra step, and the duplicate is removed from the source project in the same
-commit. Each skill here passed that test; candidates that did not were dropped
-rather than polished. Body sizes above are measured with `tiktoken o200k_base`
-on 2026-11-18. MIT.
+Body sizes above are measured with `tiktoken o200k_base` on 2026-11-18. MIT.
