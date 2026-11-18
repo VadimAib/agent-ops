@@ -154,7 +154,8 @@ Push-Location .\rules; opencode run -m <provider/model> --title prefix-rules "An
 | empty | 7,341 tokens |
 | with `AGENTS.md`, 1,447 chars (1,447 bytes) | 7,709 tokens |
 
-The difference is **368 tokens** for the whole rule file. That is cheaper than
+The difference is **368 tokens** for the whole rule file (373 on a re-measure,
+which is the same number within noise). That is cheaper than
 one extra project file read; instructions get expensive only in the tens of
 thousands of characters.
 
@@ -183,7 +184,7 @@ ratio stops being comparable).
 |---|---|---|
 | Split long tasks into sessions | cache/step 109,385 → 60,121 (120+ steps versus 10–29): up to **−45%** per step | will not go below the base prefix (23,676); context is lost, so write a short brief |
 | Heavy reading goes to a subagent | on average **9.5×** cheaper | only if the reading is really bulky; otherwise the brief costs more than it saves |
-| Trim the prefix: instructions, schemas, unused tools | 1,000 prefix tokens × steps × `p_cache` | our whole `AGENTS.md` is 368 tokens; trimming rules is pointless, trimming a 50k-char project file is not |
+| Trim the prefix: instructions, schemas, unused tools | 1,000 prefix tokens × steps × `p_cache` | our whole `AGENTS.md` is ≈370 tokens; trimming rules is pointless, trimming a 50k-char project file is not |
 | Read a file once, in slices, later in the session | 30,000 tokens at step 5 of 50 are paid 45 times, at step 45 only 5 times | needs a session plan, or the read "will be needed later" turns into a re-read |
 | Switch model within the same class | ≈ 0 | cheap models often have a higher `p_cache`; compare `p_cache` |
 | Reasoning effort | changes output and reasoning | output is ~296 of ~104,300 step tokens, reasoning is a fraction of a percent: ceiling well under 1% |
@@ -220,6 +221,21 @@ old one.
    Take the price from the provider catalog and check `currency` explicitly.
 5. **Record** the date, `<provider/model>`, the numbers and the command. Without
    a date a number is useless in a month: model, price and tool set all change.
+6. **When the question is "does it work at all", measure steps, not tokens.**
+   Move the global files aside for the duration of the control runs (rename
+   `AGENTS.md` and `skills`, run the prompts, rename back — do it in one script
+   with a `finally` block), then compare what the model actually commands:
+
+   | Prompt | Set works | No set |
+   |---|---|---|
+   | print a non-ASCII string from python | encoding variable set in the same command, no failed step | first command fails, second attempt |
+   | "how many tokens did my step cost?" | skill loads by description, numbers from the db, units stated | searches for the db, may treat `cost` as USD and fetch a rate |
+
+   Steps are the honest metric here: a bigger prefix makes every step dearer, so a
+   set that prevents one failed step can still cost more in money on a short task
+   and still be worth it on a long one.
+7. **Same prompt, three times, before believing a skill triggers.** Loading is
+   probabilistic: symptom wordings hit, the literal error name sometimes does not.
 
 ## 8. Caveats
 
