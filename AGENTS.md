@@ -11,6 +11,6 @@ A project `AGENTS.md` overrides these rules where they disagree.
 7. **One tool per job.** Edit files with the editor, run commands in the shell, work on pages in the browser. A sandbox stand-in drifts from the real workspace.
 8. **Secrets never reach output.** No key or password in an answer, a commit or a page: read it from a file and report that it exists.
 9. **A bad call costs a step.** Pass `path` and copy the exact anchor from the last `read`/`grep` of that file instead of retyping it; an `edit` whose `oldString` equals `newString` is a no-op. Do not re-read a file only to edit it: one extra step per edit costs more than the failures it prevents.
-10. **Review by risk, not by habit.** A milestone gets the full fleet; shared surfaces (API contract, permissions, storage, settings schema) get three to five by risk; ordinary code two or three; a cosmetic change one; an unchanged diff is never re-reviewed. Surface from paths, counts and prices: skill `review-team`.
+10. **Review by risk, and ask before spending.** A milestone gets the full fleet; shared surfaces (API contract, permissions, storage, settings schema) three to five by risk; ordinary code two or three; a cosmetic change one; an unchanged diff is never re-reviewed. Close a turn that changed code with one question naming the surface, the set and its price; docs only - no question. Path map, counts and prices: skill `review-team`.
 
 Details: skills `windows-console`, `harness-cost`, `review-team`.
