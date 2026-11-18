@@ -34,6 +34,26 @@ is not known, so its files are not vendored into this repository. The measured
 prices came from one account on 2026-11-18: one reviewer ₽4-18, one fleet
 ₽42-152, and fifteen fleets were 20% of everything that account had spent.
 
+The settled set, so the decision survives a machine without that skill:
+
+| Change | Run | Price |
+|---|---|---|
+| Docs only, one file, revertible | gates and tests only | ~0 |
+| Cosmetic or UI change in one file, checked by eye | 1, product/UX | ₽4-6 |
+| Code in one module, tests exist | 2-3 by risk (correctness, tests) | ₽5-15 |
+| Shared surfaces: API contract, permissions, storage, settings schema, migrations | 3-5 (correctness, security, api-compatibility, testing) | ₽30-60 |
+| Milestone: release, acceptance, "stage closed" | the full set, iterate | ₽60-150 |
+
+Never launch on an unchanged diff, on unaddressed findings of the previous run, or
+on an area already reviewed under another name.
+
+Measured 2026-11-18 (four agents, six cases, ₽0.80): with this table both runs
+stayed within 22% of the expected spend; without it the two identical runs landed
+at +11% and +44%, one of them spending a full fleet on a settings-schema key. The
+table buys a ceiling and a repeatable answer, not accuracy - and it was the test
+that showed the cosmetic row was missing, so the change had been getting 2-3
+reviewers where 1 was enough.
+
 ## Skills
 
 Skills load on demand; only the `description:` line sits in every step, so it is
