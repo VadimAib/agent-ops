@@ -58,20 +58,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Actions closes every pwsh step with
+      #   if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+      # so a step that asserts a non-zero code must end with `exit 0`, or the
+      # step fails on the very code it just accepted. Verified 2026-11-18: run 1
+      # and run 2 failed here, not in sync.ps1.
+      - name: reported version
+        shell: pwsh
+        run: Write-Output "PowerShell $($PSVersionTable.PSVersion) / $($PSVersionTable.OS)"
+
       - name: install, then check exits 0
         shell: pwsh
         run: |
           $t = Join-Path $env:RUNNER_TEMP 't'
           ./sync.ps1 -Target $t
-          if ($LASTEXITCODE -ne 0) { throw "install failed: $LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { Write-Output "::error::install exit $LASTEXITCODE"; exit 1 }
           ./sync.ps1 -Check -Target $t
-          if ($LASTEXITCODE -ne 0) { throw "check failed: $LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { Write-Output "::error::check exit $LASTEXITCODE"; exit 1 }
+          exit 0
 
       - name: unknown argument exits 2
         shell: pwsh
         run: |
           ./sync.ps1 -Bogus
-          if ($LASTEXITCODE -ne 2) { throw "expected exit 2, got $LASTEXITCODE" }
+          $code = $LASTEXITCODE
+          if ($code -ne 2) {
+            Write-Output "::error::-Bogus exit $code, expected 2 (PowerShell $($PSVersionTable.PSVersion))"
+            exit 1
+          }
+          exit 0
 
       - name: local edit is backed up
         shell: pwsh
@@ -79,10 +94,12 @@ jobs:
           $t = Join-Path $env:RUNNER_TEMP 't'
           Add-Content -Path (Join-Path $t 'AGENTS.md') -Value 'my line'
           ./sync.ps1 -Target $t
-          if ($LASTEXITCODE -ne 0) { throw "install failed: $LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { Write-Output "::error::install exit $LASTEXITCODE"; exit 1 }
           if (-not (Select-String -Path (Join-Path $t 'AGENTS.md.bak') -Pattern 'my line' -Quiet)) {
-            throw 'no backup of the edited AGENTS.md'
+            Write-Output '::error::no backup of the edited AGENTS.md'
+            exit 1
           }
+          exit 0
 
       - name: foreign AGENTS.md is left intact
         shell: pwsh
@@ -91,6 +108,11 @@ jobs:
           New-Item -ItemType Directory -Path $f -Force | Out-Null
           Set-Content -Path (Join-Path $f 'AGENTS.md') -Value '<!-- agent-ops mentioned -->'
           ./sync.ps1 -Target $f
-          if ($LASTEXITCODE -ne 1) { throw "expected exit 1, got $LASTEXITCODE" }
+          $code = $LASTEXITCODE
+          if ($code -ne 1) { Write-Output "::error::foreign exit $code, expected 1"; exit 1 }
           $txt = (Get-Content -LiteralPath (Join-Path $f 'AGENTS.md') -Raw).Trim()
-          if ($txt -ne '<!-- agent-ops mentioned -->') { throw 'foreign file was changed' }
+          if ($txt -ne '<!-- agent-ops mentioned -->') {
+            Write-Output '::error::the foreign AGENTS.md was changed'
+            exit 1
+          }
+          exit 0
