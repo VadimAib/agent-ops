@@ -16,7 +16,7 @@ same rules drift silently. A project `AGENTS.md` overrides these rules and shoul
 restate them - a duplicate is paid for on every step and does not act.
 
 `windows-console` and `windows-autostart` are Windows-only; on macOS or Linux install
-`harness-cost` alone. Measured 19.11.2026: the rules are 576 tokens a step, and a skill
+`harness-cost` alone. Measured 19.11.2026: the rules are 616 tokens a step, and a skill
 costs nothing until it is used. Re-measure after a substantial edit.
 
 ## Rules - `rules/AGENTS.md`
