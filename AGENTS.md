@@ -1,16 +1,16 @@
-# Global rules (all projects)
+# Working in this repository
 
-A project `AGENTS.md` overrides these rules where they disagree.
+This repository publishes the global rules and skills. The rules are in
+`rules/AGENTS.md` and are installed to `~/.config/opencode/AGENTS.md`; skills are in
+`skills/`. Only this file is read automatically when a session runs here.
 
-1. **No invented facts.** A claim about behaviour, an API or a number comes from a file, a command or a link. Without evidence say "no data" - a guess is worse than a gap.
-2. **Measure, don't guess.** "Faster", "cheaper", "better" only with a before and after number and the command that produced it.
-3. **Numbers carry units.** Tokens, milliseconds, megabytes, currency: name it. Take an amount from the source's own price list or report, never from a label on a screen.
-4. **Volume sets the bill.** In a long session most tokens are the same context sent again. Read a file once and in slices; hand bulky reading to a subagent; split long tasks; keep answers short.
-5. **Do not rewrite what was already sent.** Tools that compress or edit the conversation drop the prompt cache: the next request is billed in full and costs more than it saves.
-6. **Read the error before retrying.** Encoding, quoting and pipelines differ between shells and systems; a rejected command is a verdict, not bad luck.
-7. **One tool per job.** Edit files with the editor, run commands in the shell, work on pages in the browser. A sandbox stand-in drifts from the real workspace.
-8. **Secrets never reach output.** No key or password in an answer, a commit or a page: read it from a file and report that it exists.
-9. **A bad call costs a step.** Pass `path` and copy the exact anchor from the last `read`/`grep` of that file instead of retyping it; an `edit` whose `oldString` equals `newString` is a no-op. Do not re-read a file only to edit it: one extra step per edit costs more than the failures it prevents.
-10. **Review by risk, and ask before spending.** A milestone gets the full fleet; shared surfaces (API contract, permissions, storage, settings schema) three to five by risk; ordinary code two or three; a cosmetic change one; an unchanged diff is never re-reviewed. Close a turn that changed code with one question naming the surface, the set and its price; docs only - no question. Path map, counts and prices: skill `review-team`.
-
-Details: skills `windows-console`, `harness-cost`, `review-team`.
+- Edit `rules/AGENTS.md` or a skill in this repository, then copy it to the installed
+  path and prove equality by hash. Never edit the installed copy: two copies of the same
+  rules drift silently.
+- Published surface is rules and skills only: no scripts, no measurement dumps, no
+  third-party files, no project names, no personal paths.
+- No counts or amounts in `README.md`, in the repository description or in a
+  `description:` line - nobody updates those, and "ten rules" becomes a lie on the day a
+  fourth skill appears. A dated measurement is fine; a standing promise is not.
+- If `.agent-notes.md` exists in this directory, read it before changing anything: it
+  holds this machine's measurements and traps and is never published.

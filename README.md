@@ -7,8 +7,8 @@ nothing until its subject comes up.
 ## Install
 
 ```sh
-cp AGENTS.md   ~/.config/opencode/AGENTS.md
-cp -r skills/* ~/.config/opencode/skills/
+cp rules/AGENTS.md ~/.config/opencode/AGENTS.md
+cp -r skills/*     ~/.config/opencode/skills/
 ```
 
 Edit the files here and copy again. Never edit the installed copy: two copies of the
@@ -19,7 +19,7 @@ restate them - a duplicate is paid for on every step and does not act.
 `harness-cost` alone. Measured 18.11.2026: the rules are 524 tokens a step, and a skill
 costs nothing until it is used. Re-measure after a substantial edit.
 
-## Rules - `AGENTS.md`
+## Rules - `rules/AGENTS.md`
 
 Each rule was paid for by a mistake or a measured cost.
 
