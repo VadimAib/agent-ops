@@ -1,8 +1,8 @@
 # agent-ops
 
 Global rules and skills for OpenCode, for any project: no invented facts, measure
-instead of guessing, keep the context cheap. The rules cost about 500 tokens a step
-(524 measured on 18.11.2026); a skill costs nothing until its subject comes up.
+instead of guessing, keep the context cheap. The rules are always on; a skill costs
+nothing until its subject comes up.
 
 ## Install
 
@@ -14,6 +14,10 @@ cp -r skills/* ~/.config/opencode/skills/
 Edit the files here and copy again. Never edit the installed copy: two copies of the
 same rules drift silently. A project `AGENTS.md` overrides these rules and should not
 restate them - a duplicate is paid for on every step and does not act.
+
+Measured 18.11.2026: the rules are 524 tokens a step. Skills add nothing to that
+figure until they are used; the description lines are what sits in every step.
+Re-measure after a substantial edit - the number is a record of a date, not a promise.
 
 ## Rules - `AGENTS.md`
 
