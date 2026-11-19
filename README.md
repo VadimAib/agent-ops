@@ -15,9 +15,9 @@ Edit the files here and copy again. Never edit the installed copy: two copies of
 same rules drift silently. A project `AGENTS.md` overrides these rules and should not
 restate them - a duplicate is paid for on every step and does not act.
 
-Measured 18.11.2026: the rules are 524 tokens a step. Skills add nothing to that
-figure until they are used; the description lines are what sits in every step.
-Re-measure after a substantial edit - the number is a record of a date, not a promise.
+`windows-console` and `windows-autostart` are Windows-only; on macOS or Linux install
+`harness-cost` alone. Measured 18.11.2026: the rules are 524 tokens a step, and a skill
+costs nothing until it is used. Re-measure after a substantial edit.
 
 ## Rules - `AGENTS.md`
 
@@ -49,13 +49,9 @@ written in the words people actually use, literal error names included.
 
 ## Third-party
 
-`review-team` (eleven reviewer prompts) is installed separately under
-`~/.agents/skills/` and is not vendored here. Upstream is `github.com/cline/skills`,
-Apache-2.0, Copyright 2026 Cline Bot Inc.; the source and the original folder hash are
-pinned in `~/.agents/.skill-lock.json`. The local copy was modified on 18.11.2026 - the
-surface map, the closing protocol and the measured results are not upstream, so an
-upstream update would overwrite them. Rule 10 states the counts and the closing
-question on its own; the path map and the price formula live in that skill. Install it from its own
-source.
+`review-team` - eleven reviewer prompts, upstream `github.com/cline/skills`, Apache-2.0 -
+is installed separately under `~/.agents/skills/` and is not vendored here; install it
+from its own source. Rule 10 carries the counts and the closing question on its own; the
+path map and the price formula live in that skill.
 
 MIT.
