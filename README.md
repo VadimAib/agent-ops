@@ -1,7 +1,8 @@
 # agent-ops
 
 Global rules and skills for OpenCode, for any project: no invented facts, measure
-instead of guessing, keep the context cheap.
+instead of guessing, keep the context cheap. The rules cost about 500 tokens a step
+(524 measured on 18.11.2026); a skill costs nothing until its subject comes up.
 
 ## Install
 
