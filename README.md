@@ -49,9 +49,13 @@ written in the words people actually use, literal error names included.
 
 ## Third-party
 
-`review-team` (eleven reviewer prompts, licence unknown) is installed separately under
-`~/.agents/skills/` and is not vendored here. It carries the triage table and the
-closing protocol behind rule 10; rule 10 stands without it. Install it from its own
+`review-team` (eleven reviewer prompts) is installed separately under
+`~/.agents/skills/` and is not vendored here. Upstream is `github.com/cline/skills`,
+Apache-2.0, Copyright 2026 Cline Bot Inc.; the source and the original folder hash are
+pinned in `~/.agents/.skill-lock.json`. The local copy was modified on 18.11.2026 - the
+surface map, the closing protocol and the measured results are not upstream, so an
+upstream update would overwrite them. Rule 10 states the counts and the closing
+question on its own; the path map and the price formula live in that skill. Install it from its own
 source.
 
 MIT.
