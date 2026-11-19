@@ -34,7 +34,7 @@ Each rule was paid for by a mistake or a measured cost.
 | 7. One tool per job | edit in the editor, run in the shell, browse in the browser |
 | 8. Secrets never reach output | no key in an answer, a commit or a page; report that it exists |
 | 9. A bad call costs a step | anchors come from the last read; no re-read just to edit |
-| 10. Review by risk, not by habit | full fleet for a milestone, 3-5 on shared surfaces, 2-3 code, 1 cosmetic |
+| 10. Review by risk, not by habit | five for a milestone, more only on a priced yes; 3-5 on shared surfaces, 2-3 code, 1 cosmetic |
 
 ## Skills
 
@@ -49,7 +49,7 @@ written in the words people actually use, literal error names included.
 
 ## Third-party
 
-`review-team` - eleven reviewer prompts, upstream `github.com/cline/skills`, Apache-2.0 -
+`review-team` - a set of reviewer prompts, upstream `github.com/cline/skills`, Apache-2.0 -
 is installed separately under `~/.agents/skills/` and is not vendored here; install it
 from its own source. Rule 10 carries the counts and the closing question on its own; the
 path map and the price formula live in that skill.
