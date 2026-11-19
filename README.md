@@ -47,13 +47,6 @@ written in the words people actually use, literal error names included.
 | `windows-console` | `????` / `UnicodeEncodeError` / cp1252 and cp866, silent pipelines, `invalid-structure` from the command scanner, WSL versus Git Bash, UTF-16 from `wsl -l -v`, quoting, exit codes |
 | `windows-autostart` | what starts at login (services, `Run`/`RunOnce`, Startup folder, scheduled tasks), `StartupApproved` 2/3, what needs UAC, `msrdc` as the WSLg client, any `wsl.exe` starting the distro |
 
-## Companion
-
-[`opencode-fallback-quota`](https://github.com/VadimAib/opencode-fallback-quota) — an
-OpenCode plugin that keeps a session alive when a model runs out of quota, and only
-then. The two are independent: the rules work without the plugin, and the plugin
-works without the rules.
-
 ## Third-party
 
 `review-team` - a set of reviewer prompts, upstream `github.com/cline/skills`, Apache-2.0 -
