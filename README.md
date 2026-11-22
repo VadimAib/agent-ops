@@ -16,7 +16,7 @@ same rules drift silently. A project `AGENTS.md` overrides these rules and shoul
 restate them - a duplicate is paid for on every step and does not act.
 
 `windows-console` and `windows-autostart` are Windows-only; on macOS or Linux install
-`harness-cost` alone. Measured 19.11.2026: the rules are 796 tokens a step, and a skill
+`harness-cost` alone. Measured 22.11.2026: the rules are 880 tokens a step, and a skill
 costs nothing until it is used. Re-measure after a substantial edit.
 
 ## Rules - `rules/AGENTS.md`
@@ -34,7 +34,7 @@ Each rule was paid for by a mistake or a measured cost.
 | 7. One tool per job | edit in the editor, run in the shell, browse in the browser |
 | 8. Secrets never reach output | no key in an answer, a commit or a page; report that it exists |
 | 9. A bad call costs a step | anchors come from the last read; no re-read just to edit |
-| 10. Review by risk, not by habit | five for a milestone, more only on a separate yes; 3-5 on shared surfaces, 2-3 code, 1 cosmetic |
+| 10. Review by risk, and ask before spending | five for a milestone, more only on a separate yes; 3-5 shared surfaces, 2-3 code, 1 cosmetic; the recommendation goes in one `question` call, and "no review" finishes the task without one |
 | 11. A new goal is a new session | split at the goal boundary; after a review, fix findings and sync stale docs before the handoff |
 
 ## Skills
@@ -52,7 +52,7 @@ written in the words people actually use, literal error names included.
 
 `review-team` - a set of reviewer prompts, upstream `github.com/cline/skills`, Apache-2.0 -
 is installed separately under `~/.agents/skills/` and is not vendored here; install it
-from its own source. Rule 10 carries the counts and the closing question on its own; the
+from its own source. Rule 10 carries the counts and the closing decision on its own; the
 path map and the price formula live in that skill.
 
 MIT.
