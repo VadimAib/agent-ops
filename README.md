@@ -37,6 +37,14 @@ Each rule was paid for by a mistake or a measured cost.
 | 10. Review by risk, not by habit | five for a milestone, more only on a separate yes; 3-5 on shared surfaces, 2-3 code, 1 cosmetic |
 | 11. A new goal is a new session | split at the goal boundary; after a review, fix findings and sync stale docs before the handoff |
 
+Measured and refused (22.11.2026): two candidate clauses - "ask before a fork that moves
+the work" and "search the surface before editing, probe the dependency before a long run".
+Thirteen `opencode run` sessions on two scratch tasks, one model: the surface task came out
+perfect in both arms, and the dead-dependency task was slower and dearer with the clause
+(median 10 steps / 0.43 against 13 / 0.58) with the same result - the model already greps
+surfaces and reads the docs before a run. No rule, no skill; a dated record is in the local
+notes. Reopen only with a weaker model tier or a dependency that probing alone reveals.
+
 ## Skills
 
 Skills load on demand: only the `description:` line sits in every step, so it is
