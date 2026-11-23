@@ -16,7 +16,7 @@ same rules drift silently. A project `AGENTS.md` overrides these rules and shoul
 restate them - a duplicate is paid for on every step and does not act.
 
 `windows-console` and `windows-autostart` are Windows-only; on macOS or Linux install
-the rules with `harness-cost` and `brainstorm`. Measured 23.11.2026: the rules are 1 007
+the rules with `harness-cost` and `brainstorm`. Measured 23.11.2026: the rules are 1 142
 tokens a step, and a skill costs nothing until it is used. Re-measure after a substantial
 edit.
 
@@ -38,6 +38,7 @@ Each rule was paid for by a mistake or a measured cost.
 | 10. Review by risk, and ask before spending | five for a milestone, more only on a separate yes; 3-5 shared surfaces, 2-3 code, 1 cosmetic; the recommendation goes in one `question` call, and "no review" finishes the task without one |
 | 11. A new goal is a new session | split at the goal boundary; after a review, fix findings and sync stale docs before the handoff |
 | 12. Brainstorming is shared | when the goal is still forming, ask before researching outside the conversation and end the turn with a question or a decision note; planning an agreed task stays autonomous |
+| 13. The first rung that holds | reuse before writing: this repo, then the standard library or platform, then an installed dependency, then one glanceable line, then the minimum; never cut validation, security or the ask; a code turn ends with what was not checked and the changed files with their line counts |
 
 ## Skills
 

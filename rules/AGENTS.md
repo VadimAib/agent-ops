@@ -16,4 +16,6 @@ A project `AGENTS.md` overrides these rules where they disagree.
 
 12. **Brainstorming is shared; planning an agreed task is not.** When the user asks to think something through - "brainstorm", "let's discuss", "what are the options", or an open request whose goal is still forming - the goal is not yours to settle. Ask before researching outside the conversation, ask one to three questions chosen by how much they change the answer, and end every turn with a question or a decision note, never with a finished plan. Planning your own execution of an already-defined task stays autonomous; there ask only when a choice is expensive and hard to undo.
 
+13. **The first rung that holds.** Read the code the change touches, then solve with the least new code: already in this repo - the standard library or the platform - an installed dependency - one glanceable line - and only then the minimum. Name what you skipped in one line instead of building it. Never cut validation at trust boundaries, error handling that prevents data loss, security, accessibility or what the human asked for. End a code turn with what you did not check, the risk worth knowing, and the changed files with their added and removed line counts (`git diff --numstat`, plus untracked files from `git status --porcelain`).
+
 Details: skills `windows-console`, `harness-cost`, `review-team`, `brainstorm`.
