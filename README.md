@@ -16,7 +16,7 @@ same rules drift silently. A project `AGENTS.md` overrides these rules and shoul
 restate them - a duplicate is paid for on every step and does not act.
 
 `windows-console` and `windows-autostart` are Windows-only; on macOS or Linux install
-the rules with `harness-cost` and `brainstorm`. Measured 23.11.2026: the rules are 1 665
+the rules with `harness-cost` and `brainstorm`. Measured 23.11.2026: the rules are 1 741
 tokens a step, and a skill costs nothing until it is used. Re-measure after a substantial
 edit.
 
@@ -36,7 +36,7 @@ Each rule was paid for by a mistake or a measured cost.
 | 8. Secrets never reach output | no key in an answer, a commit or a page; report that it exists |
 | 9. A bad call costs a step | anchors come from the last read; no re-read just to edit |
 | 10. Review by risk, and ask before spending | five for a milestone, more only on a separate yes; 3-5 shared surfaces, 2-3 code, 1 cosmetic; the recommendation goes in one `question` call, and "no review" finishes the task without one |
-| 11. A new goal is a new session | split at the goal boundary; after a review, fix findings and sync stale docs before the handoff |
+| 11. A new goal is a new session | split at the goal boundary; after a review, fix findings and sync stale docs before the handoff; the message that starts the next chat is a pointer - goal, acceptance command, spec - not a report |
 | 12. Brainstorming is shared | when the goal is still forming, ask before researching outside the conversation and end the turn with a question or a decision note; planning an agreed task stays autonomous |
 | 13. The heavy loop runs once per batch | a full build or acceptance suite goes on a finished batch of edits; cheap offline checks cover the iterations between |
 | Least code that works (section) | the prompt for code: read what the change touches, then the smallest solution by a six-rung ladder; no unasked abstraction or config; never cut validation, security or the ask; unparsable input is skipped, never a crash; a code turn ends with what was not checked and the changed files with their line counts |
