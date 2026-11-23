@@ -16,8 +16,9 @@ same rules drift silently. A project `AGENTS.md` overrides these rules and shoul
 restate them - a duplicate is paid for on every step and does not act.
 
 `windows-console` and `windows-autostart` are Windows-only; on macOS or Linux install
-`harness-cost` alone. Measured 22.11.2026: the rules are 880 tokens a step, and a skill
-costs nothing until it is used. Re-measure after a substantial edit.
+the rules with `harness-cost` and `brainstorm`. Measured 23.11.2026: the rules are 1 007
+tokens a step, and a skill costs nothing until it is used. Re-measure after a substantial
+edit.
 
 ## Rules - `rules/AGENTS.md`
 
@@ -36,6 +37,7 @@ Each rule was paid for by a mistake or a measured cost.
 | 9. A bad call costs a step | anchors come from the last read; no re-read just to edit |
 | 10. Review by risk, and ask before spending | five for a milestone, more only on a separate yes; 3-5 shared surfaces, 2-3 code, 1 cosmetic; the recommendation goes in one `question` call, and "no review" finishes the task without one |
 | 11. A new goal is a new session | split at the goal boundary; after a review, fix findings and sync stale docs before the handoff |
+| 12. Brainstorming is shared | when the goal is still forming, ask before researching outside the conversation and end the turn with a question or a decision note; planning an agreed task stays autonomous |
 
 ## Skills
 
@@ -47,6 +49,7 @@ written in the words people actually use, literal error names included.
 | `harness-cost` | where token and money numbers live (session database), the provider price list and the currency behind a "$" label, prefix x steps, cache read versus fresh input, levers and their ceilings, before/after protocol |
 | `windows-console` | `????` / `UnicodeEncodeError` / cp1252 and cp866, silent pipelines, `invalid-structure` from the command scanner, WSL versus Git Bash, UTF-16 from `wsl -l -v`, quoting, exit codes |
 | `windows-autostart` | what starts at login (services, `Run`/`RunOnce`, Startup folder, scheduled tasks), `StartupApproved` 2/3, what needs UAC, `msrdc` as the WSLg client, any `wsl.exe` starting the distro |
+| `brainstorm` | thinking with the user instead of for them: anchor the goal, pace the questions adaptively, ask before web research, options with their failure conditions, a decision note before execution |
 
 ## Third-party
 
