@@ -2,3 +2,4 @@
 /AGENTS.md
 .agent-notes.md
 .agent-handoff.md
+__pycache__/

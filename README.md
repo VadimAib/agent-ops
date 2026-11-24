@@ -70,7 +70,8 @@ python tools/session-time.py --session <id> --slow 60 --match mutate --match acc
 
 `docs/BASELINE-2026-11-24.md` is one measured session with the targets that
 followed from it. It carries aggregates and the method, not the session's
-command list.
+command list. `docs/EXPERIMENT-2026-11-24.md` is a rule about long-check output,
+tested against that baseline and refused: the text did not move the count.
 
 ## Third-party
 
