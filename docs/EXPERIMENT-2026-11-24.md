@@ -43,9 +43,10 @@ not re-running; one A run spent 203.7 s on a longer exploration. With three runs
 per arm the difference is not separable, and the median count is identical.
 
 The two calls in the other five runs are not duplicates: the first diagnoses, the
-second confirms the fix. Five of the six runs wrote the confirmation to a file
-(`*> file; Get-Content -Tail`), which is the practice the sentence asks for, but
-arm A did it without the sentence.
+second confirms the fix. Five of the six runs captured the output to a file at
+least once (B2 from its first and only run); A2 ran both times without
+redirection. So arm A used the practice the sentence asks for without the
+sentence.
 
 ## What the baseline says, and why the fixture missed it
 
