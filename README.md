@@ -56,23 +56,6 @@ written in the words people actually use, literal error names included.
 | `windows-autostart` | what starts at login (services, `Run`/`RunOnce`, Startup folder, scheduled tasks), `StartupApproved` 2/3, what needs UAC, `msrdc` as the WSLg client, any `wsl.exe` starting the distro |
 | `brainstorm` | thinking with the user instead of for them: anchor the goal, pace the questions adaptively, ask before web research, options with their failure conditions, a decision note before execution |
 
-## Measurement
-
-`tools/session-time.py` answers "where did a session's wall time go" from the
-OpenCode database, read-only: call durations come from `session_part`
-(`time_updated - time_created`), the span is first tool call to last, and
-subagent sessions are included.
-
-```sh
-python tools/session-time.py --latest
-python tools/session-time.py --session <id> --slow 60 --match mutate --match acceptance
-```
-
-`docs/BASELINE-2026-11-24.md` is one measured session with the targets that
-followed from it. It carries aggregates and the method, not the session's
-command list. `docs/EXPERIMENT-2026-11-24.md` is a rule about long-check output,
-tested against that baseline and refused: the text did not move the count.
-
 ## Third-party
 
 `review-team` - a set of reviewer prompts, upstream `github.com/cline/skills`, Apache-2.0 -
