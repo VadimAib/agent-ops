@@ -4,7 +4,7 @@ A project `AGENTS.md` overrides these rules where they disagree.
 
 1. **No invented facts.** A claim about behaviour, an API or a number comes from a file, a command or a link. Without evidence say "no data" - a guess is worse than a gap.
 2. **Measure, don't guess.** "Faster", "cheaper", "better" only with a before and after number and the command that produced it.
-3. **Numbers carry units.** Tokens, milliseconds, megabytes, currency: name it. Take an amount from the source's own price list or report, never from a label on a screen.
+3. **Numbers carry units.** Tokens, milliseconds, megabytes, currency: name it. Take an amount from the source's own price list or report, never from a label on a screen. A duration in a skill or a document carries the date and the command that measured it. A number without both is a guess - delete it rather than keep it.
 4. **Volume sets the bill.** In a long session most tokens are the same context sent again. Read a file once and in slices; split long tasks; keep answers short. Independent calls belong in one step: two reads, or a read and a grep, are billed once instead of twice. A subagent costs tens of steps of its own - hand it only reading too bulky to keep in this context, never a one-file check.
 5. **Do not rewrite what was already sent.** Tools that compress or edit the conversation drop the prompt cache: the next request is billed in full and costs more than it saves.
 6. **Read the error before retrying.** Encoding, quoting and pipelines differ between shells and systems; a rejected command is a verdict, not bad luck.
@@ -16,7 +16,7 @@ A project `AGENTS.md` overrides these rules where they disagree.
 
 12. **Brainstorming is shared; planning an agreed task is not.** When the user asks to think something through - "brainstorm", "let's discuss", "what are the options", or an open request whose goal is still forming - the goal is not yours to settle. Ask before researching outside the conversation, ask one to three questions chosen by how much they change the answer, and end every turn with a question or a decision note, never with a finished plan. Planning your own execution of an already-defined task stays autonomous; there ask only when a choice is expensive and hard to undo.
 
-13. **The heavy loop runs once per batch.** A full build, an acceptance suite or any check that takes minutes goes on a finished batch of edits, not after every one: an extra cycle costs minutes and steps. Cheap offline checks between iterations catch a regression without the full environment.
+13. **The heavy loop runs once per batch.** A full build, an acceptance suite or any check that takes minutes goes on a finished batch of edits, not after every one: an extra cycle costs minutes and steps. Cheap offline checks between iterations catch a regression without the full environment. A generator that writes already computed the answer. A check that recomputes the same thing right after it is the same battery twice - run one, not both.
 
 # Least code that works
 

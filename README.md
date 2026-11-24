@@ -16,7 +16,7 @@ same rules drift silently. A project `AGENTS.md` overrides these rules and shoul
 restate them - a duplicate is paid for on every step and does not act.
 
 `windows-console` and `windows-autostart` are Windows-only; on macOS or Linux install
-the rules with `harness-cost` and `brainstorm`. Measured 23.11.2026: the rules are 1 436
+the rules with `harness-cost` and `brainstorm`. Measured 24.11.2026: the rules are 1 502
 tokens a step, and a skill costs nothing until it is used. Re-measure after a substantial
 edit.
 
@@ -28,7 +28,7 @@ Each rule was paid for by a mistake or a measured cost.
 |---|---|
 | 1. No invented facts | a claim comes from a file, a command or a link; otherwise "no data" |
 | 2. Measure, don't guess | "faster / cheaper / better" only with a before and after number |
-| 3. Numbers carry units | tokens, ms, MB, currency; a price from the source's own list |
+| 3. Numbers carry units | tokens, ms, MB, currency; a price from the source's own list; a duration in a doc carries its date and command |
 | 4. Volume sets the bill | read once in slices, bulky reading to a subagent, short answers |
 | 5. Do not rewrite what was sent | compression drops the prompt cache and costs more than it saves |
 | 6. Read the error before retrying | encoding, quoting and pipelines differ between shells |
@@ -38,7 +38,7 @@ Each rule was paid for by a mistake or a measured cost.
 | 10. Review by risk, and ask before spending | five for a milestone, more only on a separate yes; 3-5 shared surfaces, 2-3 code, 1 cosmetic; the recommendation goes in one `question` call, and "no review" finishes the task without one |
 | 11. A new goal is a new session | split at the goal boundary; after a review, fix findings and sync stale docs before the handoff; the message that starts the next chat is a pointer - goal, acceptance command, spec - not a report |
 | 12. Brainstorming is shared | when the goal is still forming, ask before researching outside the conversation and end the turn with a question or a decision note; planning an agreed task stays autonomous |
-| 13. The heavy loop runs once per batch | a full build or acceptance suite goes on a finished batch of edits; cheap offline checks cover the iterations between |
+| 13. The heavy loop runs once per batch | a full build or acceptance suite goes on a finished batch of edits; cheap offline checks cover the iterations between; a generator's own check is the same battery twice |
 
 The same file carries one always-on section, `# Least code that works`, for writing code:
 read what the change touches, then take the smallest solution that works, never cutting
