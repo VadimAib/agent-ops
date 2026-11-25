@@ -16,7 +16,7 @@ same rules drift silently. A project `AGENTS.md` overrides these rules and shoul
 restate them - a duplicate is paid for on every step and does not act.
 
 `windows-console` and `windows-autostart` are Windows-only; on macOS or Linux install
-the rules with `harness-cost` and `brainstorm`. Measured 25.11.2026: the rules are 1 633
+the rules with `harness-cost` and `brainstorm`. Measured 25.11.2026: the rules are 1 706
 tokens a step, and a skill costs nothing until it is used. Re-measure after a substantial
 edit.
 
