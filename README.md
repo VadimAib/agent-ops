@@ -16,7 +16,7 @@ same rules drift silently. A project `AGENTS.md` overrides these rules and shoul
 restate them - a duplicate is paid for on every step and does not act.
 
 `windows-console` and `windows-autostart` are Windows-only; on macOS or Linux install
-the rules with `harness-cost` and `brainstorm`. Measured 24.11.2026: the rules are 1 579
+the rules with `harness-cost` and `brainstorm`. Measured 25.11.2026: the rules are 1 672
 tokens a step, and a skill costs nothing until it is used. Re-measure after a substantial
 edit.
 
@@ -33,7 +33,7 @@ Each rule was paid for by a mistake or a measured cost.
 | 5. Do not rewrite what was sent | compression drops the prompt cache and costs more than it saves |
 | 6. Read the error before retrying | encoding, quoting and pipelines differ between shells |
 | 7. One tool per job | edit in the editor, run in the shell, browse in the browser |
-| 8. Secrets never reach output | no key in an answer, a commit or a page; report that it exists |
+| 8. Nothing private reaches a public surface | no key, password or personal data in an answer, a commit or a page; before a push, a PR, an issue or a page, run `publish-check` over the diff, the history and the artifacts; the allowed identity comes from local instructions |
 | 9. A bad call costs a step | anchors come from the last read; no re-read just to edit |
 | 10. Review by risk, and ask before spending | five for a milestone, more only on a separate yes; 3-5 shared surfaces, 2-3 code, 1 cosmetic; the offer names the set as k of N with the roles it dropped, and "no review" finishes the task without a question |
 | 11. A new goal is a new session | split at the goal boundary; after a review, fix findings and sync stale docs before the handoff; the message that starts the next chat is a pointer - goal, acceptance command, spec - not a report |
@@ -55,6 +55,7 @@ written in the words people actually use, literal error names included.
 | `windows-console` | `????` / `UnicodeEncodeError` / cp1252 and cp866, silent pipelines, `invalid-structure` from the command scanner, WSL versus Git Bash, UTF-16 from `wsl -l -v`, quoting, exit codes |
 | `windows-autostart` | what starts at login (services, `Run`/`RunOnce`, Startup folder, scheduled tasks), `StartupApproved` 2/3, what needs UAC, `msrdc` as the WSLg client, any `wsl.exe` starting the distro |
 | `brainstorm` | thinking with the user instead of for them: anchor the goal, pace the questions adaptively, ask before web research, options with their failure conditions, a decision note before execution |
+| `publish-check` | before anything goes public: personal paths and usernames, names and emails, hostnames, private project and client names, third-party data, session dumps, git author metadata, secrets alive in the deleted history; the grep patterns built from the machine, the linkability question left to the human |
 
 ## Third-party
 
