@@ -1,123 +1,116 @@
 ---
 name: publish-check
-description: Check for private data before anything goes public - a push to a public remote, a pull request, an issue, a published page, a screenshot, an answer carrying someone else's data. Personal paths and usernames, real names and emails, hostnames and internal addresses, private project and client names, third-party data, session dumps and costs, git author metadata, and secrets deleted from HEAD but alive in the history. Load for "push", "publish", "make it public", "open a PR", "is it safe to push", "why is my name in the repo".
+description: Check what becomes readable by strangers before a push, a pull request, an issue, a published page, a screenshot or an answer carrying someone else's data - personal paths and usernames, names and emails, hostnames, private project and client names, third-party data, session dumps, git author metadata, secrets in the deleted history. Not for a local commit, a private branch or a push only you can read. Load for "push", "publish", "make it public", "open a PR", "is it safe to push", "why is my name in the repo".
 ---
 
 # publish-check - nothing private reaches a public surface
 
 Verified 2026-11-25 on Windows: `git` 2.51.0, PowerShell 7.6.10, `opencode` v2.2.5.
-Every section ends with the command that shows its state, not a promise.
 
 ## 0. When this runs
 
-Before the surface becomes readable by strangers:
+Before the surface becomes readable by strangers: a push to a remote they can read (a first
+push publishes every commit), a pull request, an issue, a comment, a published page, a pasted
+screenshot, an answer carrying someone else's data. Not for a local commit, a private branch,
+or a push only you can read.
 
-- a push to a remote they can read (first push of a repository publishes every commit)
-- a pull request, an issue, a comment, a review
-- a published page, a shared document, a pasted screenshot
-- an answer that carries someone else's data
-
-Not needed: a local commit, a private branch, a file nobody else reads.
-
-Is the remote public? Ask `gh repo view --json visibility` when `gh` exists; otherwise ask
-the human once, and treat "unknown" as public.
+Is the remote public? `gh repo view --json visibility`; otherwise ask once, and treat
+"unknown" as public.
 
 ## 1. Scope - what actually leaves
 
-Name the three parts before scanning, because they are checked differently:
-
-1. the diff - the working tree plus the commits not yet on the remote
-2. the history - everything that ships with the repository, deleted files included
+1. the diff - the working tree plus the commits the remote does not have
+2. the history - everything that ships with the push, deleted files included
 3. the artifacts - images, PDFs, build outputs, logs, screenshots, the clipboard
 
 ```powershell
 git status --porcelain
-git log --oneline @{u}..            # commits the remote does not have
+git log --oneline --not --remotes      # works with no upstream, also on the first push
 git remote -v
 ```
 
 ## 2. The allowed identity
 
-The list of what may appear (a handle, a noreply address, the project's own name) lives
-in the project's unpublished instructions - a local `AGENTS.md`, `.agent-notes.md`, or
-the human's answer. With no such list, nothing personal is allowed.
+From the human in this session, or from a local notes file that is not part of the published
+tree - an ignored `AGENTS.md` is fine. A file inside the repository cannot whitelist itself:
+what it "allows" is still a question. With no list, nothing personal is allowed.
 
-Keep this skill generic: a handle written into the published tree is itself the leak.
+## 3. Patterns from the machine
 
-## 3. Build the pattern list from the machine
-
-Never from memory - the names below are on this machine, not in the file:
+Built here, never remembered:
 
 ```powershell
 $me   = $env:USERNAME
-$homepath = $env:USERPROFILE
 $pc   = $env:COMPUTERNAME
 $name = git config --get user.name
 $mail = git config --get user.email
+if (-not $me -or -not $name -or -not $mail) { "a pattern is empty: set it before grepping" }
 ```
 
-Add from the project's local instructions: private project names, client names, colleague
-names, internal hostnames.
+An empty `-e ""` matches every line; unset values flood the output and bury the real hit.
+Add from the local notes: private project names, client names, colleague names, internal hosts.
 
-Then grep both the tree and the history. History is the part everyone skips:
+## 4. Tree and history, both
 
 ```powershell
-git grep -n -I -F -e "$me" -e "$pc" -e "$name" -e "$mail" -- .
-git grep -n -I -F -e "$me" -e "$pc" -e "$name" -e "$mail" $(git rev-list --all) --
-git log --all --oneline -- .agent-notes.md .env notes/   # files deleted long ago
-git ls-files -i -c --exclude-standard                     # ignored, yet tracked
+git grep --untracked -n -I -F -e "$me" -e "$pc" -e "$name" -e "$mail" -- .
+git rev-list --all | ForEach-Object { git grep -n -I -F -e "$me" -e "$pc" -e "$name" -e "$mail" $_ }
 ```
 
-Machine strings miss data that belongs to other people, so add the shapes. These catch a
-stranger's mailbox, a home directory on another machine, a token in a URL:
+`--untracked` matters: plain `git grep` reads tracked files only, so a new file leaks while
+the report says "tree checked". The loop matters: `$(git rev-list --all)` is one command line,
+and Windows rejects it near 800 commits.
+
+Shapes, because machine strings miss other people's data:
 
 ```powershell
-git grep -n -I -E -e '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' -e '[A-Za-z]:\\Users\\|/home/|/Users/' -e '://[^/ ]+:[^/ ]+@' -e '\b(10|192\.168|172\.(1[6-9]|2[0-9]|3[01]))\.[0-9]' -- .
+git grep --untracked -n -I -E -e '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' -e '[A-Za-z]:\\Users\\|/home/|/Users/' -e '://[^/ ]+:[^/ ]+@' -e '\b(10|192\.168|172\.(1[6-9]|2[0-9]|3[01]))\.[0-9]' -- .
 ```
 
-Then run the same expression with `$(git rev-list --all)` in place of `-- .`: a mailbox that
-was deleted from HEAD still ships in the history.
+Credentials that are not a private key, over the tree and then over `git rev-list --all`:
 
-A hit is a question, not a verdict: a common surname, a city name, a word that is also a
-product. Read the line and decide; do not "clean" a false positive into a broken document.
+```powershell
+git grep --untracked -n -I -E -e 'AKIA[0-9A-Z]{16}' -e 'gh[pousr]_[A-Za-z0-9]{20,}' -e 'sk-[A-Za-z0-9]{20,}' -e 'eyJ[A-Za-z0-9_-]{10,}\.' -e 'BEGIN [A-Z ]*PRIVATE KEY' -e '[?&](token|key|sig|X-Amz-Signature|access_token)=' -e '(password|passwd|pwd)\s*[:=]' -- .
+```
 
-## 4. The categories
+Metadata - the leak no content grep sees:
 
-| Category | Looks like | Why it matters after a grep |
-|---|---|---|
-| Paths and machine | `C:\Users\<name>`, `/home/<name>`, hostname, UNC `\\server\share` | names a person and a machine in one string |
-| Name, email, handles | real name, personal mailbox, account name | the identity the handle was meant to hide |
-| Infrastructure | internal IPs and domains, DB and host names, SSH aliases, tenant ids, signed URLs | a map of a private network |
-| Third parties | other people's names and mailboxes in fixtures, "sample" data that is a production export | they never consented; worse than your own |
-| Media and binaries | EXIF, screenshots with a face, tabs, notifications or a taskbar name, a PDF author, absolute paths inside a binary | invisible to a text grep |
-| Work traces | session ids and dumps, costs in RUB, durations, internal command and project names | identifies the person's work without naming them |
-| Credentials that do not look like keys | connection strings, DSNs, JWTs, cookies, URLs with a token in the query | rule 8 covers keys; this catches the rest |
+```powershell
+git log --all --format='%h %an <%ae>' | Sort-Object -Unique
+```
+
+A real name, a corporate address or a timezone in an unpushed commit is a finding. Amend it
+while it is local (`git commit --amend --reset-author`); after a push it needs a yes.
+
+Ignored and deleted:
+
+```powershell
+git ls-files -i -c --exclude-standard   # nothing printed = none
+git log --all --diff-filter=D --name-only --format=''   # deleted, still in history
+git show <rev>:<path>                   # read what it held
+```
+
+Beyond the patterns: third-party data in fixtures, session dumps and costs, a screenshot with
+a face, a tab or a taskbar name, a PDF author, EXIF, absolute paths inside a binary.
 
 ## 5. What no command decides
 
-Hand these to the human in one sentence each; do not pretend a grep answered them:
-
-- **Linkability.** Timezone plus stack plus a rare typo plus the same handle in three
-  places identifies a person while every single element is harmless. Look at the whole
-  set with a stranger's eyes.
-- **Copyright against anonymity.** MIT wants a copyright holder; a real name in `LICENSE`
-  is a public signature. Decide once (a project name or `contributors` plus a noreply
-  address), then check that nothing silently replaces it.
-- **Removing a leak from history.** A commit that is not on the remote yet is not
-  published: amend or reset it, re-scan, then push. Once a commit is pushed, a rewrite
-  breaks every clone - say so and get a yes; never rewrite on your own.
+- **Linkability.** Name the two details that together point at one employer, city or account,
+  or say none - this is the anonymity check.
+- **Removing a leak.** Unpushed commit: amend or reset, re-scan, push. Pushed commit: the
+  rewrite breaks every clone, so get a yes. Third-party data: removing it is the owner's call.
+- **Copyright against anonymity.** A real name in `LICENSE` is a public signature; decide once
+  and check that nothing silently replaces it.
 
 ## 6. Report, then publish
 
-One line before the push and one after it:
-
-- what was checked (tree, history, metadata, which artifacts)
-- what it found - the file, the line, the category
-- what was removed, what stays and why
-- clean is a valid answer: say "clean, checked tree and N commits" rather than inventing a
-  finding to look thorough
+- what was checked: tree with untracked, all N commits, metadata, which artifacts - or state
+  "binaries and media not examined"
+- the hit: file, line, category
+- a hit stops the push until the human answers; "clean, checked tree and N commits" is a valid
+  answer - say it rather than inventing a finding
 
 ```powershell
 git rev-parse HEAD
-git ls-remote origin refs/heads/main    # equal after the push, or it is not public yet
+git ls-remote origin HEAD    # equal after the push, or it is not published yet
 ```
